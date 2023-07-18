@@ -1,0 +1,51 @@
+#dd1 {
+    padding: 0 0;
+    height: 32px;
+}
+#dd1_h {
+    height: 32px;
+    margin: 0 0;
+    font-size: 14px;
+}
+#dd1_l {
+    top: 32px;
+    display: grid;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    max-height: 200px;
+    height: 0;
+}
+.dropdown[dd-show="true"] #dd1_l {
+    height: initial;
+}
+#dd1_l label {
+    height: 32px;
+    max-height: 32px;
+}
+
+#tzlab1 {
+    height: fit-content;
+    margin: auto 7px auto 0;
+}
+
+#settings-hdr-1 {
+    margin-right: auto;
+    margin-left: auto;
+    margin-bottom: 10px;
+    border-bottom: solid 1px #555;
+    text-align: center;
+    padding-bottom: 5px;
+}
+
+#left-half {
+    margin-left: 5px;
+    width: calc(49.5% - 5px);
+    margin-right: 0.5%;
+}
+#right-half {
+    margin-right: 5px;
+    width: calc(49.5% - 5px);
+    margin-left: 0.5%;
+    font-size: 14px;
+    padding-left: 7px;
+}

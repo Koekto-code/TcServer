@@ -1,0 +1,137 @@
+﻿@{
+  Layout = null;
+}
+@model TcServer.Views.WorkShifts.Index.ViewData
+@using TcServer.Views.WorkShifts
+@using TcServer.Utility
+
+<!DOCTYPE html>
+<html lang="en" style="overflow: hidden">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="~/css/scroll-table.css">
+  <link rel="stylesheet" href="~/css/input-date.css">
+  <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/utility.css">
+  <link rel="stylesheet" href="~/css/main.css">
+  <link rel="stylesheet" href="~/css/workshifts.css">
+  <title>Рабочие смены</title>
+</head>
+<body style="margin: 0; height: 100vh;">
+  <div class="inset">
+    <div class="plate">
+      <div class="inset">
+        <div class="flex-col">
+          <div class="plate">
+            <div class="inset">
+              <div class="flex-col">
+                <div class="scroll-table flex-col">
+                  <table class="scroll-table-head">
+                    <thead>
+                      <tr>
+                        <th class="st-title-column">Должность</th>
+                        <th class="st-time-column">Пн</th>
+                        <th class="st-time-column">Вт</th>
+                        <th class="st-time-column">Ср</th>
+                        <th class="st-time-column">Чт</th>
+                        <th class="st-time-column">Пт</th>
+                        <th class="st-time-column">Сб</th>
+                        <th class="st-time-column">Вс</th>
+                        <th class="st-time-column">Начало действия</th>
+                        <th class="st-time-column">Конец действия</th>
+                        <th class="st-actions-column"></th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div class="scroll-table-body">
+                    <table>
+                      <colgroup>
+                        <col class="st-title-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-time-column">
+                        <col class="st-actions-column">
+                      </colgroup>
+                      <tbody>
+                      @foreach (var entry in Model.WorkShifts)
+                      {
+                        <tr>
+                          <td>@entry.JobTitle</td> 
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.MonArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.MonLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.TueArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.TueLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.WedArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.WedLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.ThuArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.ThuLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.FriArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.FriLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.SatArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.SatLeave)</p>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex-col">
+                              <p class="time-field">@DayTime.ToString(entry.SunArrive)</p>
+                              <p class="time-field">@DayTime.ToString(entry.SunLeave)</p>
+                            </div>
+                          </td>
+                          <td>@(entry.DateBegin ?? "")</td>
+                          <td>@(entry.DateEnd ?? "")</td>
+                          <td>
+                            <div class="checkbox-overlay">
+                              <input type="checkbox" name="shift-select" value="@(entry.Id)">
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex-row" style="margin-top: 5px;">
+            <button>Добавить</button>
+            <button>Удалить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

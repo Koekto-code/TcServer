@@ -1,0 +1,99 @@
+* {
+  box-sizing: border-box;
+}
+
+.dropdown {
+    position: relative;
+    min-width: 100px;
+    width: 230px;
+    height: 40px;
+}
+.dropdown[dd-show="true"] .dd-title::before {
+    transform: translate(-3px, -50%) rotate(-45deg);
+}
+.dropdown[dd-show="true"] .dd-title::after {
+    transform: translate(3px, -50%) rotate(45deg);
+}    
+.dropdown[dd-show="true"] .dd-list {
+    opacity: 1;
+}
+.dropdown[dd-show="true"] .dd-list * {
+    max-height: 40px;
+}
+
+.dd-title {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 8px 16px;
+    border-radius: 5px;
+    border: solid 1px #ffffff;
+    cursor: pointer;
+    background-color: rgb(149, 184, 240);
+    font-size: 18px;
+    transition: 200ms;
+}
+.dd-title::before, .dd-title::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    display: block;
+    width: 10px;
+    height: 2px;
+    transition: all 0.3s ease-out;
+    background-color: #333;
+    transform: translate(-3px, -50%) rotate(45deg);
+}
+.dd-title::after {
+    transform: translate(3px, -50%) rotate(-45deg);
+}
+.dd-title:hover {
+    border-color: #099ad8;
+}
+.dd-title:hover::before, .dd-title:hover::after {
+    background-color: #099ad8;
+}
+
+.dd-list {
+    position: absolute;
+    top: 40px;
+    left: 3px;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 6px);
+    background-color: #fff;
+    border: 1px solid #c7ccd1;
+    border-top: none;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    transition: all 0.3s ease-out;
+    opacity: 0;
+    z-index: 8;
+}
+
+.dd-item {
+    display: none;
+    background-color: #dedede;
+}
+
+.dd-label {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 40px;
+    max-height: 0;
+    padding: 0 16px;
+    transition: all 0.2s ease-out;
+    cursor: pointer;
+    overflow: hidden;
+}
+.dd-label + input + .dd-label {
+    border-top: 0 solid #c7ccd1 60;
+}
+.dd-label:hover {
+    background-color: #099ad8 !important;
+    color: #fff;
+}

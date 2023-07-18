@@ -1,0 +1,81 @@
+﻿@model TcServer.Views.Company.Index.ViewData
+@using TcServer.Views.Company.Index
+@using System.Text.Encodings.Web
+@{
+  Layout = null;
+  
+  string offToString(double off) {
+    int hrs = (int)(off);
+    int mins = (int)((off - hrs) * 60);
+    return "GMT" + hrs.ToString("+#00;-#00") + ":" + mins.ToString("#00;#00");
+  }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="~/css/main.css">
+  <link rel="stylesheet" href="~/css/scroll-table.css">
+  <link rel="stylesheet" href="~/css/input-date.css">
+  <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/utility.css">
+  <link rel="stylesheet" href="~/css/context-menu.css">
+  <link rel="stylesheet" href="~/css/company.css">
+  <title>Организация</title>
+</head>
+<body style="margin: 0;">
+  <div class="inset">
+    <div class="plate">
+      <div class="inset">
+        <div class="flex-col">
+          <div class="flex-row" style="margin-bottom: 5px;">
+            <button onclick="window.location.reload()">Обновить</button>
+            <h3 class="middlepos">@Model.Company.Name</h3>
+            <button onclick="window.location.href=`/schedule?compname=${compName}`">На главную</button>
+          </div>
+          <div class="plate">
+            <div class="inset">
+              <div class="flex-row">
+                <div id="left-half">
+                  <h4 id="settings-hdr-1">Настройки</h4>
+                  <div class="flex-row" id="settings-left">
+                    <label id="tzlab1">Часовой пояс: </label>
+                    <div class="dropdown" dd-show="" id="dd1">
+                      <div class="dd-title" dd-value="" dd-parent="dd1" id="dd1_h">@offToString(Model.Company.GMTOffset)</div>
+                      <div class="dd-list" id="dd1_l">
+                      @for (int i = -24; i <= 24; ++i)
+                      {
+                        double val = i * 0.5;
+                        string disp = offToString(val);
+                        <input id="dd1_i@(i)" class="dd-item" type="radio" onclick="selectTimezone(@val)"/>
+                        <label for="dd1_i@(i)" class="dd-label" dd-header="dd1_h">@disp</label>
+                      }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div id="right-half">
+                  <p><b>Часовой пояс</b> - настройка для правильного отображения времени в отчётах. Отметка, принятая с терминала, содержит время по GMT+00 (Greenwich Mean Time).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(Model.Company.Name))');
+</script>
+
+<script src="~/js/dropdown.js"></script>
+<script src="~/js/ctxmenu.js"></script>
+<script src="~/js/company.js"></script>
+
+</html>

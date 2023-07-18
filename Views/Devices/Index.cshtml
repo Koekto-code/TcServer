@@ -1,0 +1,112 @@
+﻿@model TcServer.Views.Devices.Index.ViewData
+@using TcServer.Views.Devices.Index
+@using System.Text.Encodings.Web
+@{
+  Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en" style="overflow: hidden">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="~/css/main.css">
+  <link rel="stylesheet" href="~/css/scroll-table.css">
+  <link rel="stylesheet" href="~/css/input-date.css">
+  <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/utility.css">
+  <link rel="stylesheet" href="~/css/context-menu.css">
+  <link rel="stylesheet" href="~/css/devices.css">
+  <title>Устройства</title>
+</head>
+<body style="margin: 0; height: 100vh;">
+  <div class="inset">
+    <div class="plate">
+      <div class="inset">
+        <div class="flex-col">
+          <div class="flex-row" style="margin-bottom: 5px;">
+            <button onclick="window.location.reload()">Обновить</button>
+            <button id="dev-add-btn" style="margin-left: 5px;">Добавить устройство</button>
+            <button onclick="deleteSelectedDevices()" style="margin-left: 5px;">Удалить</button>
+            <button onclick="resetSelectedDevicesCall()" style="margin-left: 5px;">Сбросить отправку</button>
+            <button class="rightpos" onclick="window.location.href='/schedule'">На главную</button>
+          </div>
+          <div class="plate">
+            <div class="inset">
+              <div class="flex-col">
+                <div class="scroll-table flex-col">
+                  <table class="scroll-table-head">
+                    <thead>
+                      <tr>
+                        <th>Номер</th>
+                        <th>Идентификатор</th>
+                        <th>URI</th>
+                        <th>Пароль</th>
+                        <th>Состояние</th>
+                        <th class="st-actions-column">
+                          <div class="checkbox-overlay">
+                            <input type="checkbox" onclick="toggleDevSelection(this.checked)">
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div class="scroll-table-body">
+                    <table>
+                      <tbody>
+                      @foreach (var e in Model.Devices)
+                      {
+                        var stat = Model.DevStat[e.SerialNumber];
+                        string fontclass = stat ? "greenfont-light" : "redfont-light";
+                        <tr>
+                          <td>@e.InnerId</td>
+                          <td>@e.SerialNumber</td>
+                          <td>
+                            <input class="inline-text-input" value="@e.Address" onkeypress="addDeviceDyn(event, this.value, '@e.Password')">
+                          </td>
+                          <td>@e.Password</td>
+                          <td class='@fontclass'>@(stat ? "В сети" : "Недоступен")</td>
+                          <td class="st-actions-column">
+                            <div class="checkbox-overlay">
+                              <input type="checkbox" name="dev-select" value=@e.InnerId>
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ctxmenu plate" id="dev-add-menu">
+    <div class="flex-col hfull">
+      <div class="flex-row space2">
+      <div class="flex-col wfull" style="padding-right: 5px;">
+          <input type="text" class="text-input" id="dev-sel-addr" placeholder="URI">
+          <input type="text" class="text-input" id="dev-sel-pass" placeholder="Пароль">
+        </div>
+      </div>
+      <div class="leftpos">
+          <button onclick="addDeviceByMenu()">Добавить</button>
+        </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(Model.CompName))');
+</script>
+
+<script src="~/js/dropdown.js"></script>
+<script src="~/js/ctxmenu.js"></script>
+<script src="~/js/devices.js"></script>
+
+</html>

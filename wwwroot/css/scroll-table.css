@@ -1,0 +1,50 @@
+
+.scroll-table {
+    height: 100%;
+}
+
+.scroll-table-body {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    margin-top: 0px;
+    border-bottom: 1px solid #eee;
+    height: 100%;
+}
+
+.scroll-table-head {
+    border-collapse: collapse;
+}
+
+.scroll-table table {
+    width: 100%;
+    table-layout: fixed;
+    border-bottom: solid 2px #555;
+    border-radius: 4px;
+    margin-bottom: 3px;
+}
+
+.scroll-table thead th {
+    text-align: center;
+    padding: 5px;
+    color: #575757;
+    font-size: 14px;
+    background-image: linear-gradient(#fff, #eaefff);
+    border-radius: 4px;
+}
+
+.scroll-table tbody td {
+    text-align: left;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    padding: 5px 10px;
+    font-size: 14px;
+    vertical-align: top;
+}
+
+.scroll-table tbody tr:nth-child(even) {
+    background-color: #fcfcfc;
+}
+
+.scroll-table tbody tr:nth-child(odd) {
+    background-color: #efefff;
+}

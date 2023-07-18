@@ -1,0 +1,177 @@
+﻿@{
+  Layout = null;
+}
+@model TcServer.Views.Employee.Index.ViewData
+@using TcServer.Views.Employee.Index
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="~/css/main.css">
+  <link rel="stylesheet" href="~/css/scroll-table.css">
+  <link rel="stylesheet" href="~/css/input-date.css">
+  <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/utility.css">
+  <link rel="stylesheet" href="~/css/context-menu.css">
+  <link rel="stylesheet" href="~/css/employee.css">
+  <title>Сотрудник</title>
+</head>
+<body style="margin: 0; height: 100vh;">
+  <div class="main-cont">
+    <div class="plate">
+      <div class="inset">
+        <div class="flex-col">
+          <div class="flex-row" style="margin-bottom: 5px;">
+            <button onclick="window.location.reload()">Обновить</button>
+            <div class="centhdr">
+              <h2>@Model.Employee.Name</h2>
+            </div>
+            <button class="rightpos" onclick="window.location.href='/schedule'">На главную</button>
+          </div>
+          <div class="plate">
+            <div class="inset97 flex-row">
+              <div class="list1">
+                <div style="padding: 5px;">
+                  <table id="tab1">
+                    <tbody>
+                      <tr>
+                        <td class="fc">Должность</td>
+                        <td class="sc">@Model.Employee.JobTitle</td>
+                      </tr>
+                      <tr>
+                        <td class="fc">Место работы</td>
+                        <td class="sc">@Model.Company.Name</td>
+                      </tr>
+                      <tr>
+                        <td class="fc">Фотографии</td>
+                        <td class="sc">@Model.Employee.Photos.Count</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  @{ var ophotos = Model.OwnPhotos; }
+                  @if (ophotos.Count > 0)
+                  {
+                  <div class="chdr-ovl">
+                    <h3 class="chdr" style="margin-top: 15px;">Распознанные фотографии</h3>
+                  </div>
+                  <table>
+                    <tbody>
+                      @for (int row = 0; row != ophotos.Count / 3; ++row)
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(ophotos[row * 3].Id)" class="imgsel">
+                        </td>
+                        <td class="tc">
+                          <img src="/img/id?id=@(ophotos[row * 3 + 1].Id)" class="imgsel">
+                        </td>
+                        <td class="ec">
+                          <img src="/img/id?id=@(ophotos[row * 3 + 2].Id)" class="imgsel">
+                        </td>
+                      </tr>
+                      }
+                      @if ((ophotos.Count % 3) == 1)
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(ophotos[ophotos.Count - 1].Id)" class="imgsel">
+                        </td>
+                        <td class="tc"></td>
+                        <td class="ec"></td>
+                      </tr>
+                      }
+                      else if ((ophotos.Count % 3 == 2))
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(ophotos[ophotos.Count - 2].Id)" class="imgsel">
+                        </td>
+                        <td class="tc">
+                          <img src="/img/id?id=@(ophotos[ophotos.Count - 1].Id)" class="imgsel">
+                        </td>
+                        <td class="ec"></td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                  }
+                </div>
+              </div>
+              @{ var sphotos = Model.StrangerPhotos; }
+              @if (sphotos.Count > 0)
+              {
+              <div id="ftab1cc" class="plate stpad list1 expandev" style="margin-left: 5px;">
+                <div class="flex-row">
+                  <div class="ptrhover" id="fold1">
+                    <div class="chdr-ovl">
+                      <h3 class="chdr">Нераспознанные фотографии</h3>
+                    </div>
+                  </div>
+                  <button class="rightpos" onclick="addSelectedPhotos()">Добавить фото</button>
+                </div>
+                <div id="ftab1c" class="openev">
+                  <table id="ftab1" class="hideev">
+                    <tbody>
+                      @for (int row = 0; row != sphotos.Count / 3; ++row)
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(sphotos[row * 3].Id)" data-value="@(sphotos[row * 3].Id)" class="imgsel">
+                        </td>
+                        <td class="tc">
+                          <img src="/img/id?id=@(sphotos[row * 3 + 1].Id)" data-value="@(sphotos[row * 3 + 1].Id)" class="imgsel">
+                        </td>
+                        <td class="ec">
+                          <img src="/img/id?id=@(sphotos[row * 3 + 2].Id)" data-value="@(sphotos[row * 3 + 2].Id)" class="imgsel">
+                        </td>
+                      </tr>
+                      }
+                      @if ((sphotos.Count % 3) == 1)
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(sphotos[sphotos.Count - 1].Id)" data-value="@(sphotos[sphotos.Count - 1].Id)" class="imgsel">
+                        </td>
+                        <td class="tc"></td>
+                        <td class="ec"></td>
+                      </tr>
+                      }
+                      else if ((sphotos.Count % 3 == 2))
+                      {
+                      <tr>
+                        <td class="tc">
+                          <img src="/img/id?id=@(sphotos[sphotos.Count - 2].Id)" data-value="@(sphotos[sphotos.Count - 2].Id)" class="imgsel">
+                        </td>
+                        <td class="tc">
+                          <img src="/img/id?id=@(sphotos[sphotos.Count - 1].Id)" data-value="@(sphotos[sphotos.Count - 1].Id)" class="imgsel">
+                        </td>
+                        <td class="ec"></td>
+                      </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  let companyId = "@Model.Company.Id";
+  let employeeId = "@Model.Employee.InnerCompId";
+</script>
+
+<script src="~/js/dropdown.js"></script>
+<script src="~/js/ctxmenu.js"></script>
+<script src="~/js/employee.js"></script>
+
+</html>

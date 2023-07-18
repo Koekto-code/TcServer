@@ -1,0 +1,407 @@
+@model TcServer.Views.Schedule.Index.ViewData
+@using TcServer.Views.Schedule.Index
+@using TcServer.Utility
+@using TcServer.Storage.Core
+@using System.Text.Json
+@using System.Text.Encodings.Web
+@{
+  Layout = null;
+  string compName = Model.Company?.Name ?? "";
+  string unitName = Model.Active?.Name ?? "";
+  string viewDate = Model.SelectedDate ?? "";
+  bool isRootView = Model.Company is null;
+  bool isAdmin = Model.AccType == AccountType.Admin;
+}
+
+<!DOCTYPE html>
+<html lang="en" style="overflow: hidden">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="~/css/main.css">
+  <link rel="stylesheet" href="~/css/scroll-table.css">
+  <link rel="stylesheet" href="~/css/input-date.css">
+  <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/utility.css">
+  <link rel="stylesheet" href="~/css/context-menu.css">
+  <link rel="stylesheet" href="~/css/schedule.css">
+  <title>Управление</title>
+</head>
+<body style="margin: 0; height: 100vh;">
+  <div class="main-cont">
+    <div class="flex-row hfull">
+      <div class="flex-col plate" style="max-width: 35%; min-width: 450px;">
+        <div>
+          <div class="inset">
+            <div class="plate">
+              <div class="inset">
+                <div class="flex-col">
+                  <div class="flex-row">
+                    <!-- Unit selector -->
+                    <div class="dropdown main-dd" dd-show="" id="dd1">
+                      <div class="dd-title" dd-parent="dd1" id="dd1_h">@(Model.Active is null ? "Отдел" : Model.Active.Name)</div>
+                      <div class="dd-list">
+                        @for (int i = 0; i != Model.Units.Count; ++i)
+                        {
+                        <input id="dd1_i@(i)" class="dd-item" type="radio" onclick="changeUnit('@Model.Units[i]')" />
+                        <label for="dd1_i@(i)" class="dd-label" dd-header="dd1_h">@Model.Units[i]</label>
+                        }
+                      </div>
+                    </div>
+                    @if (isAdmin)
+                    {
+                    <!-- Company selector -->
+                    <div class="dropdown rightpos main-dd" dd-show="" id="dd0">
+                      <div class="dd-title" dd-parent="dd0" id="dd0_h">@(Model.Company is null ? "Организация" : Model.Company.Name)</div>
+                      <div class="dd-list">
+                        @for (int i = 0; i != Model.Companies.Count; ++i)
+                        {
+                        <input id="dd0_i@(i)" class="dd-item" type="radio" onclick="changeComp('@Model.Companies[i]')" />
+                        <label for="dd0_i@(i)" class="dd-label" dd-header="dd0_h">@Model.Companies[i]</label>
+                        }
+                      </div>
+                    </div>
+                    }
+                  </div>
+                  
+                  <div class="flex-row" style="margin-top: 10px;">
+                    <!-- Date selector -->
+                    <div class="grid1">
+                      <label for="datesel1" id="datesel1-label" class="leftpos">Выборка</label>
+                      <input type="date" id="datesel1" onchange="changeDate(this.value)" />
+                    </div>
+                    <input type="image" id="dots-btn1" src="~/img/dots.png" alt="Управление" class="dots-btn rightpos">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex-row" style="margin-top: 5px;">
+              <input id="filter1" type="text" class="text-input" placeholder="Поиск по фильтру">
+            </div>
+          </div>
+        </div>
+        <div class="flex-normal">
+          <div class="inset">
+            <div class="scroll-table flex-col">
+              <table class="scroll-table-head">
+                <thead>
+                  <tr>
+                    <th>Сотрудник</th>
+                    <th class="st-id-column">ID</th>
+                    <th class="st-actions-column">
+                      <div class="checkbox-overlay middlepos">
+                        <input type="checkbox" onclick="toggleEmplSelection(this.checked)">
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+              </table>
+              <div class="scroll-table-body">
+                <table>
+                  <tbody id="tbody1">
+                  @foreach (var entry in Model.Records)
+                  {
+                    <tr>
+                      <td>
+                        <div class="flex-col">
+                          <a class="empl-name-field" onclick="employeePage(@entry.Key.InnerCompId)">@entry.Key.Name</a>
+                          <p class="empl-title-field">@entry.Key.JobTitle</p>
+                        </div>
+                      </td>
+                      <td class="st-id-column"><p class="rightpos wfit">@entry.Key.InnerCompId</p></td>
+                      <td class="st-actions-column">
+                        <div class="flex-row">
+                          <div class="checkbox-overlay">
+                            <input type="checkbox" name="empl-select" value=@entry.Key.InnerCompId>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      @if (Model.SelectedDate is not null && Model.Active is not null)
+      {
+      <div class="flex-col" style="max-width: 65%; margin-left: 5px;">
+        <div class="plate flex-normal">
+          <div class="inset">
+            <div class="flex-col hfull">
+              <div class="flex-row">
+                <h3 class="leftpos">Отчёт за @(Model.SelectedDate)</h3>
+                <button onclick="window.location.reload()" class="rightpos">Обновить</button>
+                <button onclick="getExcelSheet()">Экспорт в XLSX</button>
+              </div>
+              <div style="overflow: hidden; margin-top: 5px;">
+                <div class="scroll-table flex-col">
+                  <table class="scroll-table-head">
+                    <thead>
+                      <tr>
+                        <th>Сотрудник</th>
+                        <th class="st-time-column">Приход</th>
+                        <th class="st-time-column">Уход</th>
+                        <th>Комментарий</th>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div class="scroll-table-body">
+                    <table>
+                      <tbody>
+                      @foreach(var entry in Model.Records)
+                      {
+                        List<string> comments = new();
+
+                        string arriveStyle = "st-time-column";
+                        string leaveStyle = "st-time-column";
+
+                        if (entry.Value?.ArriveState == Record.State.Skip)
+                          comments.Add("Пропуск");
+                        else if (entry.Value?.ArriveState == Record.State.Late)
+                        {
+                          comments.Add("Опоздание");
+                          arriveStyle += " redfont";
+                        }
+
+                        if (entry.Value?.LeaveState == Record.State.Early)
+                        {
+                          comments.Add("Ранний уход");
+                          leaveStyle += " redfont";
+                        }
+
+                        string arrive = DayTime.ToString(entry.Value?.TimeArrive);
+                        string leave = DayTime.ToString(entry.Value?.TimeLeave);
+                        <tr>
+                          <td>
+                            <div class="flex-col">
+                              <p class="empl-name-field" onclick="employeePage(@entry.Key.InnerCompId)">@entry.Key.Name</p>
+                              <p class="empl-title-field">@entry.Key.JobTitle</p>
+                            </div>
+                          </td>
+                          <td class="@arriveStyle">@arrive</td>
+                          <td class="@leaveStyle">@leave</td>
+                          <td>@string.Join("; ", comments)</td>
+                        </tr>
+                      }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="ctxmenu plate" id="menu1">
+    <div class="flex-row">
+      <div class="flex-col space2">
+        @if (!isRootView)
+        {
+        <h4>Отдел</h4>
+        <div class="flex-col leftpadded">
+          <input id="unit-create-ti" class="menubtn btnlike-text-input" placeholder="Создать">
+          @if (Model.Active is not null)
+          {
+          <input id="unit-rename-ti" class="menubtn btnlike-text-input" placeholder="Переименовать">
+          <button class="menubtn" onclick="deleteCurrentUnit()">Удалить</button>
+          }
+        </div>
+        }
+        @if (Model.Active is not null)
+        {
+        <h4>Сотрудники</h4>
+        <div class="flex-col leftpadded">
+          <button class="menubtn" id="empl-add-btn">Добавить</button>
+          <button class="menubtn" onclick="deleteSelectedEmployees()">Удалить</button>
+          <div class="dropdown" dd-show="" id="dd3">
+            <div class="dd-title" dd-value="" dd-parent="dd3" id="dd3_h">Переместить</div>
+            <div class="dd-list" id="dd3_l">
+              @for (int i = 0; i != Model.Units.Count; ++i)
+              {
+              <input id="dd3_i@(i)" class="dd-item" type="radio" onclick="transferEmployees('@Model.Units[i]')"/>
+              <label for="dd3_i@(i)" class="dd-label" dd-header="dd3_h">@Model.Units[i]</label>
+              }
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+      @if (isAdmin || !isRootView)
+      {
+      <div class="flex-col space2" style="margin-left: 5px;">
+        <h4>Организация</h4>
+        <div class="flex-col leftpadded">
+          @if (!isRootView)
+          {
+          <button class="menubtn" onclick="window.location.href=`/company?compname=${compName}`">Управление</button>
+          <button class="menubtn" onclick="window.location.href=`/workshifts?compname=${compName}`">Рабочие смены</button>
+          <button class="menubtn" onclick="window.location.href=`/devices?compname=${compName}`">Терминалы</button>
+          <button class="menubtn" id="excel-export-btn">Экспорт отчётов</button>
+          }
+          @if (isAdmin)
+          {
+          <button class="menubtn" id="create-comp-btn">Создать</button>
+          @if (!isRootView)
+          {
+            <button class="menubtn" onclick="window.location.href='/schedule'">Выйти</button>
+            <button class="menubtn" onclick="deleteCurrentComp()" id="comp-del-btn">Удалить</button>
+          }
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="ctxmenu shade-menu plate" id="empl-create-menu">
+    <div class="flex-col hfull">
+        <div class="flex-col wfull leftpos">
+          <input type="text" class="text-input w70-ti" id="empl-sel-name" placeholder="Полное имя">
+          <input type="text" class="text-input w70-ti" id="empl-sel-title" placeholder="Должность">
+          <input type="text" class="text-input w70-ti" id="empl-sel-addr" placeholder="Домашний адрес (не обязательно)">
+        </div>
+      <div class="flex-row" style="margin-top: 5px;">
+        <div class="leftpos">
+          <button onclick="createEmployee()">Добавить</button>
+        </div>
+        <div class="dropdown rightpos" dd-show="" id="dd2">
+          <div class="dd-title" dd-value="" dd-parent="dd2" id="dd2_h">Терминал</div>
+          <div class="dd-list">
+            @for (int i = 0; i != Model.AvailableDevices.Count; ++i)
+            {
+            <input id="dd2_i@(i)" class="dd-item" type="radio" onclick="emplAssignedDevId=@(i)" />
+            <label for="dd2_i@(i)" class="dd-label" dd-header="dd2_h">@Model.AvailableDevices[i].InnerId</label>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="ctxmenu shade-menu plate" id="excel-export-menu">
+    <div class="flex-col hfull">
+      <div class="flex-col">
+        <div id="exhdrc">
+          <h4 id="exhdr">Экспорт отчётов за выбранные даты</h4>
+        </div>
+        <div class="flex-row">
+          <input type="date" id="ddex1" />
+          <label for="ddex1">Начало выборки</label>
+        </div>
+        <div class="flex-row" style="margin-top: 3px;">
+          <input type="date" id="ddex2" />
+          <label for="ddex2">Конец выборки</label>
+        </div>
+      </div>
+      <div class="flex-row" style="margin-top: 15px;">
+        <button onclick="exportCustomExcel()" style="margin-right: 5px;">Скачать</button>
+        <div class="dropdown" dd-show="" id="ddex">
+          <div class="dd-title" dd-value="_all_" dd-parent="ddex" id="ddex_h">Отдел</div>
+          <div class="dd-list" id="ddex_l">
+            <input id="ddex_i" class="dd-item" type="radio" />
+            <label for="ddex_i" class="dd-label" dd-value="_all_" dd-header="ddex_h">Все отделы</label>
+            @for (int i = 0; i != Model.Units.Count; ++i)
+            {
+            <input id="ddex_i@(i)" class="dd-item" type="radio" />
+            <label for="ddex_i@(i)" class="dd-label" dd-header="ddex_h">@Model.Units[i]</label>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="ctxmenu shade-menu plate" id="comp-create-menu">
+    <form method="post" asp-action="RegisterPost" asp-controller="Main" id="comp-create-form">
+      <div class="flex-col hfull">
+          <div class="flex-col wfull leftpos">
+            <div class="flex-row ccti-cont">
+              <ion-icon name="mail-outline" class="ccreate-icon"></ion-icon>
+              <input type="text" name="email" class="ccti" id="comp-sel-email" placeholder="Логин" required>
+            </div>
+            <div class="flex-row ccti-cont">
+              <ion-icon name="lock-closed-outline" class="ccreate-icon"></ion-icon>
+              <input type="password" name="password" class="ccti" id="comp-sel-pass" placeholder="Пароль" required>
+            </div>
+            <div class="flex-row ccti-cont">
+              <ion-icon name="lock-closed-outline" class="ccreate-icon"></ion-icon>
+              <input type="password" id="comp-sel-pass1" class="ccti" placeholder="Повтор пароля" required>
+            </div>
+            <input type="text" name="name" class="text-input w70-ti" id="comp-sel-accname" placeholder="Имя аккаунта" required>
+            <input type="text" name="company_name" name class="text-input w70-ti" id="comp-sel-title" placeholder="Название организации" required>
+          </div>
+        <div class="flex-row" style="margin-top: 5px;">
+          <div class="leftpos">
+            <button id="comp-submit-btn">Создать</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div id="shade-overlay"></div>
+</body>
+
+@{
+  <script>
+    const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(compName))');
+    const unitName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(unitName))');
+    const viewDate = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(viewDate))');
+  </script>
+}
+
+<script>
+  function employeePage(innerid) {
+    window.location.href = `/employee?compname=${compName}&id=${innerid}`;
+  }
+  function changeUnit(unitname) {
+    window.location.href = `/schedule?compname=${compName}&unitname=${unitname}&viewdate=${viewDate}`;
+  }
+  function changeComp(compname) {
+    window.location.href = `/schedule?compname=${compname}&viewdate=${viewDate}`;
+  }
+  function changeDate(newdate) {
+    window.location.href = `/schedule?compname=${compName}&unitname=${unitName}&viewdate=${newdate}`;
+  }
+  function getExcelSheet() {
+    window.location.href = `/schedule/xlsxreport?compname=${compName}&unitname=${unitName}&viewdate=${viewDate}`;
+  }
+</script>
+
+<script src="~/js/ctxmenu.js"></script>
+@if (Model.AccType == AccountType.Admin)
+{
+<script>
+  addContextMenu (
+    document.getElementById('comp-create-menu'),
+    document.getElementById('create-comp-btn')
+  )
+</script>
+}
+@if (Model.Active is not null)
+{
+<script>
+  addContextMenu (
+    document.getElementById('empl-create-menu'),
+    document.getElementById('empl-add-btn')
+  );
+</script>
+}
+
+<script src="~/js/dropdown.js"></script>
+<script src="~/js/schedule.js"></script>
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+</html>
+

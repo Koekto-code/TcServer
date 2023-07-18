@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="./css/dropdown.css">
+		<title>Главная</title>
+	</head>
+	<body>
+		<div class="dropdown" dd-show="" id="dd1">
+			<div class="dd-title" data-default="Выбрать отдел" dd-parent="dd1" id="dd1_h">Выбрать отдел</div>
+			<div class="dd-list">
+				<label class="dd-label"></label>
+				<input id="dd1_i1" class="dd-item" type="radio" />
+				<label for="dd1_i1" class="dd-label" dd-header="dd1_h" onclick="console.log(this)">Общий</label>
+				<input id="dd1_i2" class="dd-item" type="radio" />
+				<label for="dd1_i2" class="dd-label" dd-header="dd1_h" onclick="console.log(this)">Контора</label>
+				<input id="dd1_i3" class="dd-item" type="radio" />
+				<label for="dd1_i3" class="dd-label" dd-header="dd1_h" onclick="console.log(this)">Гараж</label>
+			</div>
+		</div>
+	</body>
+	<script src="./js/dropdown.js"></script>
+</html>
+
+<script>
+
+</script>
