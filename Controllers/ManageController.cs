@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Transactions;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 
 using TcServer;
@@ -421,6 +422,93 @@ namespace TcServer.Controllers
 			parse.Company.GMTOffset = offset;
 			await dbCtx.SaveChangesAsync();
 			
+			return Ok();
+		}
+		
+		[HttpPost("workshifts/add")]
+		[CookieAuthorize]
+		public async Task<IActionResult> AddWorkshift(string compname, [FromBody] WorkshiftAddDTO? dto)
+		{
+			if (dto is null)
+				return BadRequest();
+			
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
+					return BadRequest();
+				
+				var comp = parse.Company;
+				
+				await dbCtx.WorkShifts.AddAsync(new()
+				{
+					InnerId = comp.NextShiftId++,
+					CompanyId = comp.Id,
+					JobTitle = dto.JobTitle,
+					
+					DateBegin = dto.DateBegin,
+					DateEnd = dto.DateEnd,
+					
+					SunArrive = dto.SunArrive,
+					SunLeave = dto.SunLeave,
+					
+					MonArrive = dto.MonArrive,
+					MonLeave = dto.MonLeave,
+					
+					TueArrive = dto.TueArrive,
+					TueLeave = dto.TueLeave,
+					
+					WedArrive = dto.WedArrive,
+					WedLeave = dto.WedLeave,
+					
+					ThuArrive = dto.ThuArrive,
+					ThuLeave = dto.ThuLeave,
+					
+					FriArrive = dto.FriArrive,
+					FriLeave = dto.FriLeave,
+					
+					SatArrive = dto.SatArrive,
+					SatLeave = dto.SatLeave
+				});
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
+			return Ok();
+		}
+		
+		[HttpPost("workshifts/delete")]
+		[CookieAuthorize]
+		public async Task<IActionResult> DeleteWorkshifts(string compname, [FromBody] int[]? innerIds)
+		{
+			if (innerIds is null)
+				return BadRequest();
+			
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var pdata = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (pdata?.Company is null)
+					return BadRequest();
+				
+				var comp = pdata.Company;
+				
+				var wshifts = await dbCtx.WorkShifts
+					.Where(w => w.CompanyId == comp.Id)
+					.ToListAsync();
+				
+				var innerIdsSet = innerIds.ToHashSet();
+				
+				foreach (WorkShift wsh in wshifts)
+					if (innerIdsSet.Contains(wsh.InnerId))
+						dbCtx.WorkShifts.Remove(wsh);
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
 			return Ok();
 		}
 	}

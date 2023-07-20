@@ -32,7 +32,7 @@
 <body style="margin: 0; height: 100vh;">
   <div class="main-cont">
     <div class="flex-row hfull">
-      <div class="flex-col plate" style="max-width: 35%; min-width: 450px;">
+      <div class="flex-col plate" style="max-width: 40%; min-width: 450px;">
         <div>
           <div class="inset">
             <div class="plate">
@@ -84,11 +84,12 @@
         </div>
         <div class="flex-normal">
           <div class="inset">
+            <h5 id="empl-counter1">Сотрудники: @Model.Records.Count</h5>
             <div class="scroll-table flex-col">
               <table class="scroll-table-head">
                 <thead>
                   <tr>
-                    <th>Сотрудник</th>
+                    <th>Имя</th>
                     <th class="st-id-column">ID</th>
                     <th class="st-actions-column">
                       <div class="checkbox-overlay middlepos">
@@ -252,7 +253,7 @@
           <button class="menubtn" id="create-comp-btn">Создать</button>
           @if (!isRootView)
           {
-            <button class="menubtn" onclick="window.location.href='/schedule'">Выйти</button>
+            <button class="menubtn" onclick="resetView()">Выйти</button>
             <button class="menubtn" onclick="deleteCurrentComp()" id="comp-del-btn">Удалить</button>
           }
           }
@@ -358,24 +359,6 @@
     const viewDate = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(viewDate))');
   </script>
 }
-
-<script>
-  function employeePage(innerid) {
-    window.location.href = `/employee?compname=${compName}&id=${innerid}`;
-  }
-  function changeUnit(unitname) {
-    window.location.href = `/schedule?compname=${compName}&unitname=${unitname}&viewdate=${viewDate}`;
-  }
-  function changeComp(compname) {
-    window.location.href = `/schedule?compname=${compname}&viewdate=${viewDate}`;
-  }
-  function changeDate(newdate) {
-    window.location.href = `/schedule?compname=${compName}&unitname=${unitName}&viewdate=${newdate}`;
-  }
-  function getExcelSheet() {
-    window.location.href = `/schedule/xlsxreport?compname=${compName}&unitname=${unitName}&viewdate=${viewDate}`;
-  }
-</script>
 
 <script src="~/js/ctxmenu.js"></script>
 @if (Model.AccType == AccountType.Admin)

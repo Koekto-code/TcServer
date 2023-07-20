@@ -3,11 +3,17 @@ input[type="date"] {
     height: 24px;
     border: 1px solid #fff;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 14px;
     background-color: rgb(149, 184, 240);
     text-transform: uppercase;
     transition: 200ms;
     cursor: pointer;
+}
+
+input[type="date"]:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: #6489e5;
 }
 
 input[type="date"]:hover {

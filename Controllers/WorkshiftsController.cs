@@ -38,6 +38,7 @@ namespace TcServer.Controllers
 			
 			var viewdata = new Views.WorkShifts.Index.ViewData()
 			{
+				Company = comp,
 				WorkShifts = comp.WorkShifts.ToList()
 			};
 			return View(viewdata);

@@ -44,7 +44,9 @@ namespace TcServer.Controllers
 		[HttpGet("logout")]
 		public IActionResult Logout()
 		{
-			Response.Cookies.Delete("accessToken");
+			foreach (var cook in Request.Cookies.Keys)
+				Response.Cookies.Delete(cook);
+			
 			return RedirectToAction("Index");
 		}
 

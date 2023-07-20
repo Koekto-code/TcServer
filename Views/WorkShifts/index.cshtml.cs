@@ -13,6 +13,8 @@ namespace TcServer.Views.WorkShifts.Index
 {
 	public class ViewData
 	{
+		public Storage.Core.Company Company { get; set; } = null!;
+		
 		public List<WorkShift> WorkShifts { get; set; } = new();
 	}
 }

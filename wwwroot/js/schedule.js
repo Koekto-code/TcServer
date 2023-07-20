@@ -2,10 +2,40 @@
 addContextMenu(document.getElementById('menu1'), document.getElementById('dots-btn1'));
 addContextMenu(document.getElementById('excel-export-menu'), document.getElementById('excel-export-btn'));
 
-function toggleEmplSelection(val)
+function employeePage(innerid) {
+	window.location.href = `/employee?compname=${compName}&id=${innerid}`;
+}
+
+function changeUnit(unitname) {
+	window.location.href = `/schedule?compname=${compName}&unitname=${unitname}&viewdate=${viewDate}`;
+}
+
+function changeComp(compname) {
+	window.location.href = `/schedule?compname=${compname}&viewdate=${viewDate}`;
+}
+
+function changeDate(newdate) {
+	window.location.href = `/schedule?compname=${compName}&unitname=${unitName}&viewdate=${newdate}`;
+}
+
+function getExcelSheet() {
+	window.location.href = `/schedule/xlsxreport?compname=${compName}&unitname=${unitName}&viewdate=${viewDate}`;
+}
+
+function delCookie(name) {
+	document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+}
+
+function resetView()
 {
-	const checkboxes = Array.from(document.getElementsByName('empl-select'))
-	checkboxes.forEach(cb => {
+	delCookie("scheduleCompName");
+	delCookie("scheduleUnitName");
+	delCookie("scheduleDate");
+	window.location.href = '/schedule'
+}
+
+function toggleEmplSelection(val) {
+	document.getElementsByName('empl-select').forEach(cb => {
 		cb.checked = val;
 	});
 }
@@ -58,7 +88,7 @@ function createEmployee()
 
 function deleteSelectedEmployees()
 {
-	const checkboxes = Array.from(document.getElementsByName('empl-select'))
+	const checkboxes = document.getElementsByName('empl-select');
 	const values = []
 	checkboxes.forEach(cb => {
 		if (cb.checked)
@@ -89,7 +119,7 @@ function deleteSelectedEmployees()
 
 function transferEmployees(destination)
 {
-	const checkboxes = Array.from(document.getElementsByName('empl-select'))
+	const checkboxes = document.getElementsByName('empl-select');
 	const values = []
 	checkboxes.forEach(cb => {
 		if (cb.checked)

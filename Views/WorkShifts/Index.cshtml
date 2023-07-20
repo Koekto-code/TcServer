@@ -4,6 +4,7 @@
 @model TcServer.Views.WorkShifts.Index.ViewData
 @using TcServer.Views.WorkShifts
 @using TcServer.Utility
+@using System.Text.Encodings.Web
 
 <!DOCTYPE html>
 <html lang="en" style="overflow: hidden">
@@ -15,6 +16,7 @@
   <link rel="stylesheet" href="~/css/scroll-table.css">
   <link rel="stylesheet" href="~/css/input-date.css">
   <link rel="stylesheet" href="~/css/dropdown.css">
+  <link rel="stylesheet" href="~/css/context-menu.css">
   <link rel="stylesheet" href="~/css/utility.css">
   <link rel="stylesheet" href="~/css/main.css">
   <link rel="stylesheet" href="~/css/workshifts.css">
@@ -42,7 +44,11 @@
                         <th class="st-time-column">Вс</th>
                         <th class="st-time-column">Начало действия</th>
                         <th class="st-time-column">Конец действия</th>
-                        <th class="st-actions-column"></th>
+                        <th class="st-actions-column">
+                          <div class="checkbox-overlay middlepos">
+                            <input type="checkbox" onclick="toggleSelection(this.checked)">
+                          </div>
+                        </th>
                       </tr>
                     </thead>
                   </table>
@@ -112,7 +118,7 @@
                           <td>@(entry.DateEnd ?? "")</td>
                           <td>
                             <div class="checkbox-overlay">
-                              <input type="checkbox" name="shift-select" value="@(entry.Id)">
+                              <input type="checkbox" name="shift-select" value="@(entry.InnerId)">
                             </div>
                           </td>
                         </tr>
@@ -125,13 +131,65 @@
             </div>
           </div>
           <div class="flex-row" style="margin-top: 5px;">
-            <button>Добавить</button>
-            <button>Удалить</button>
+            <button id="workshift-add-btn">Добавить</button>
+            <button onclick="deleteSelected()">Удалить</button>
           </div>
         </div>
       </div>
     </div>
   </div>
+  @{
+    var weekDays = new string[]
+    {
+      "Пн",
+      "Вт",
+      "Ср",
+      "Чт",
+      "Пт",
+      "Сб",
+      "Вс"
+    };
+  }
+  <div class="ctxmenu shade-menu plate" id="workshift-add-menu">
+    <div class="flex-col">
+      <input type="text" class="text-input" id="jobtitle_ti" placeholder="Должность">
+      <div style="width: fit-content;">
+      @{ int wdId = 0; }
+      @foreach (string wd in weekDays)
+      {
+        ++wdId;
+        <div class="flex-row daytime-row">
+          <p class="inline-p daytime-name">@wd</p>
+          <div class="flex-row daytime-range">
+            <input type="text" id="dtti_@(wdId)b" class="ti-base daytime-ti" maxlength="5">
+            <p class="inline-p">&mdash;</p>
+            <input type="text" id="dtti_@(wdId)e" class="ti-base daytime-ti" maxlength="5">
+          </div>
+        </div>
+      }
+      </div>
+      <div class="flex-row" style="margin-top: 15px;">
+        <div class="flex-col">
+          <label for="workshift-beg-di" class="di-label">Начало действия</label>
+          <input type="date" id="workshift-beg-di">
+        </div>
+        <div class="flex-col" style="margin-left: 10px;">
+          <label for="workshift-end-di" class="di-label">Конец действия</label>
+          <input type="date" id="workshift-end-di">
+        </div>
+      </div>
+      <button id="workshift-final-add-btn" onclick="addWorkshift()">Добавить</button>
+    </div>
+  </div>
+
+  <div id="shade-overlay"></div>
 </body>
+
+<script>
+  const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(Model.Company.Name))');
+</script>
+
+<script src="~/js/ctxmenu.js"></script>
+<script src="~/js/workshifts.js"></script>
 
 </html>

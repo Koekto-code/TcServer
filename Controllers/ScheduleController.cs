@@ -105,6 +105,38 @@ namespace TcServer.Controllers
 			if (client is null)
 				return RedirectToAction("Login", "Main");
 			
+			bool cookieRedirect = false;
+			string?[] reqcook = new string?[2]
+			{
+				Request.Cookies["scheduleCompName"],
+				Request.Cookies["scheduleUnitName"]
+			};
+			if (compname is null)
+			{
+				compname = reqcook[0];
+				cookieRedirect = compname is not null;
+			}
+			else if (reqcook[0] is null)
+				Response.Cookies.Append("scheduleCompName", compname);
+			
+			if (unitname is null)
+			{
+				unitname = reqcook[1];
+				cookieRedirect |= unitname is not null;
+			}
+			else if (reqcook[1] is null)
+				Response.Cookies.Append("scheduleUnitName", unitname);
+			
+			if (cookieRedirect)
+			{
+				return RedirectToAction("Index", "Schedule", new
+				{
+					compname = compname,
+					unitname = unitname,
+					viewdate = viewdate
+				});
+			}
+			
 			var pdata = await Utility.ParseViewpath(this, compname, unitname, client);
 			if (pdata is null)
 				return BadRequest();
@@ -203,14 +235,15 @@ namespace TcServer.Controllers
 				foreach (var pair in worksheets)
 				{
 					var worksheet = workbook.AddWorksheet(pair.Key);
-					worksheet.Column(1).Width = 20;
+					worksheet.Column(1).Width = 35;
 					worksheet.Column(2).Width = 40;
 					worksheet.Column(3).Width = 15;
 					worksheet.Column(4).Width = 15;
+					worksheet.Column(5).Width = 30;
 					
 					int row = 1;
 					
-					var tophdr = worksheet.Range(row, 1, row, 4);
+					var tophdr = worksheet.Range(row, 1, row, 5);
 					tophdr.Merge();
 					tophdr.Style.Font.Bold = true;
 					tophdr.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -236,6 +269,7 @@ namespace TcServer.Controllers
 						++row;
 						var hdrcols = worksheet.Range(row, 1, row, 5);
 						hdrcols.Style.Font.Bold = true;
+						hdrcols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						
 						worksheet.Cell(row, 1).Value = "Должность";
 						worksheet.Cell(row, 2).Value = "Имя сотрудника";
@@ -245,7 +279,6 @@ namespace TcServer.Controllers
 						
 						foreach (var recdata in unitdata.Value)
 						{
-							Console.WriteLine($"Recdata: {recdata.Key.Name}");
 							++row;
 							worksheet.Cell(row, 1).Value = recdata.Key.JobTitle;
 							worksheet.Cell(row, 2).Value = recdata.Key.Name;
@@ -253,10 +286,25 @@ namespace TcServer.Controllers
 							{
 								worksheet.Cell(row, 3).Value = DayTime.ToString(recdata.Value.TimeArrive);
 								worksheet.Cell(row, 4).Value = DayTime.ToString(recdata.Value.TimeLeave);
+								
+								var comments = new List<string>();
+								
+								if (recdata.Value.ArriveState == Record.State.Skip)
+									comments.Add("Пропуск");
+								else if (recdata.Value.ArriveState == Record.State.Late)
+									comments.Add("Опоздание");
+
+								if (recdata.Value.LeaveState == Record.State.Early)
+									comments.Add("Ранний уход");
+								
+								worksheet.Cell(row, 5).Value = string.Join(", ", comments);
 							}
 						}
 						
-						var result = worksheet.Range(rowbeg, 1, row, 4);
+						var timecols = worksheet.Range(rowbeg, 3, row, 4);
+						timecols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+						
+						var result = worksheet.Range(rowbeg, 1, row, 5);
 						result.Style.Border.TopBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.RightBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.LeftBorder = XLBorderStyleValues.Thin;

@@ -1,56 +1,4 @@
 
-.ctxmenu {
-    position: absolute;
-    padding: 10px;
-    
-    opacity: 0;
-    z-index: -2;
-    pointer-events: none;
-    
-    transition: 200ms;
-}
-
-.ctxmenu[menu-enabled="true"] {
-    opacity: 1;
-    z-index: 1999;
-    pointer-events: all;
-}
-
-.shade-menu {
-    top: 15vh;
-    left: 5vh;
-    right: 5vh;
-}
-
-.shade-menu[menu-enabled="true"] {
-    z-index: 20001;
-}
-  
-#shade-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
-    
-    opacity: 0;
-    z-index: -2;
-    pointer-events: none;
-    
-    transition: 200ms;
-}
-
-#shade-overlay[ov-enabled="true"] {
-    opacity: 1;
-    z-index: 20000;
-    pointer-events: all;
-}
-
-/* .scroll-table tbody td {
-    min-width: 50px;
-} */
-
 .st-title-column {
     min-width: 80px;
     width: fit-content;
@@ -67,4 +15,73 @@
 .time-field {
     margin: 2px 2px;
     text-align: center;
+}
+
+.inline-p {
+    margin: auto 5px;
+    font-size: 16px;
+}
+
+.daytime-name {
+    margin-right: 15px;
+}
+
+.daytime-row {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.ti-base {
+    height: 24px;
+    border-radius: 4px;
+    border-top: none;
+    border-right: none;
+    border-left: none;
+    border-bottom: solid 2px #ccc;
+    outline: none;
+    box-shadow: none;
+    transition: 200ms;
+}
+
+.ti-base:focus,
+.ti-base:hover {
+    background-color: #f7f7f7;
+    border-color: rgb(58, 92, 173);
+    outline: none;
+    box-shadow: none;
+}
+
+.daytime-ti {
+    width: 56px;
+    text-align: center;
+}
+
+.daytime-range {
+    margin-right: 5px;
+    margin-left: auto;
+    width: fit-content;
+}
+
+#workshift-add-menu {
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
+    min-width: 300px;
+    padding: 15px;
+}
+
+#jobtitle_ti {
+    margin-bottom: 10px;
+}
+
+#workshift-final-add-btn {
+    margin-top: 7px;
+}
+
+.di-label {
+    font-size: 12px;
+}
+
+.red-border {
+    border-color: #da3f51;
 }
