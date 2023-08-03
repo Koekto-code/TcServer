@@ -26,6 +26,9 @@ Array.from(document.querySelectorAll('.ctxmenu')).forEach(menu => {
 
 function addContextMenu(menu, caller)
 {
+	if (!menu || !caller)
+		return;
+	
 	const ov = document.getElementById("shade-overlay");
 	if (menu.classList.contains("shade-menu"))
 	{

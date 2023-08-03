@@ -29,13 +29,20 @@ namespace TcServer.Views.Schedule.Index
 
 		public State LeaveState = State.Normal;
 
-		public Record(int? timeArrive, int? timeLeave, string date, List<WorkShift> rules)
+		public Record(int? timeArrive, int? timeLeave, string date, List<WorkShift> rules, List<WorkShift>? lpRules = null)
 		{
 			TimeArrive = timeArrive;
 			TimeLeave = timeLeave;
 
 			DateTime target = DateTime.ParseExact(date, "yyyy-MM-dd", null);
 			WorkShift? ruleSelected = Shift.SelectRule(target, rules);
+			
+			if (ruleSelected is null && lpRules is not null)
+			{
+				// try finding in rules with lower precedence
+				// (usually ones with undefined job title)
+				ruleSelected = Shift.SelectRule(target, lpRules);
+			}
 
 			// compare the data with rule
 			if (ruleSelected is not null)
@@ -73,6 +80,12 @@ namespace TcServer.Views.Schedule.Index
 		
 		// all employees of the active unit should be here
 		public Dictionary<Storage.Core.Employee, Record?> Records { get; set; } = new();
+		
+		public int EmplsTotal { get; set; }
+		
+		public int EmplsWithPhonesTotal { get; set; }
+		
+		public int EmplsWithPhones { get; set; }
 
 		public List<Device> AvailableDevices { get; set; } = new();
 	}

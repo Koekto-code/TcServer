@@ -2,10 +2,6 @@
     font-family: Verdana, Geneva, Tahoma, sans-serif
 }
 
-a {
-    background-color: azure;
-}
-
 nav {
     border-bottom: solid 2px cornflowerblue;
     border-bottom-left-radius: 4px;

@@ -19,7 +19,7 @@ namespace TcServer.Controllers
 	[Route("/devices")]
 	public class DevicesController: Controller
 	{
-		[CookieAuthorize]
+		[CookieAuthorize(AccountType.Admin)]
 		public async Task<IActionResult> Index(string? compname)
 		{
 			if (compname is null) return BadRequest();
@@ -30,29 +30,34 @@ namespace TcServer.Controllers
 			
 			var client = (Account)HttpContext.Items["authEntity"]!;
 			Company? comp = null;
+			Views.Devices.Index.ViewData viewdata;
 			
-			if (client.Type == AccountType.Company)
+			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				await dbCtx.Entry(client).Reference(c => c.Company).LoadAsync();
-				comp = client.Company!;
-				if (comp.Name != compname)
-					return Unauthorized();
+				if (client.Type == AccountType.Company)
+				{
+					await dbCtx.Entry(client).Reference(c => c.Company).LoadAsync();
+					comp = client.Company!;
+					if (comp.Name != compname)
+						return Unauthorized();
+				}
+				else if (client.Type == AccountType.Admin)
+				{
+					comp = await dbCtx.Companies.FirstOrDefaultAsync(c => c.Name == compname);
+					if (comp is null)
+						return BadRequest();
+				}
+				else return BadRequest();
+				
+				await dbCtx.Entry(comp).Collection(c => c.Devices).LoadAsync();
+				scope.Complete();
 			}
-			else if (client.Type == AccountType.Admin)
-			{
-				comp = await dbCtx.Companies.FirstOrDefaultAsync(c => c.Name == compname);
-				if (comp is null)
-					return BadRequest();
-			}
-			else return BadRequest();
 			
-			await updSvc.UpdateDevicesStat();
-			await dbCtx.Entry(comp).Collection(c => c.Devices).LoadAsync();
-
-			Views.Devices.Index.ViewData viewdata = new()
+			await updSvc.UpdateDevicesStat(comp.Id);
+			viewdata = new()
 			{
 				Devices = comp.Devices.ToList(),
-				DevStat = dbCtx.DevicesStat,
+				DevStat = updSvc.DevStat,
 				CompName = compname
 			};
 			return View(viewdata);

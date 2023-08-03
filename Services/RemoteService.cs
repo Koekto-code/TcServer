@@ -27,6 +27,10 @@ namespace TcServer.Services
 		
 		Task<PersonListResponseDTO?> QueryEmployees(string uri, string pass, string id);
 		
+		Task<PhotoAssignResponseDTO?> AssignPhoto(string uri, string pass, PhotoAssignDTO dto, bool initial = true);
+		
+		Task<DevResponseDTO?> DeletePhoto(string uri, string pass, string faceId);
+		
 		Task<RecordsResponseDTO?> QueryRecords(string uri, string pass, RecordsQueryDTO dto);
 		
 		Task<DevResponseDTO?> DeleteRecords(string uri, string pass, RecordsDeleteDTO dto);
@@ -61,6 +65,16 @@ namespace TcServer.Services
 		public async Task<PersonListResponseDTO?> QueryEmployees(string uri, string pass, string id)
 		{
 			return await Methods.QueryEmployees(devClient, uri, pass, id);
+		}
+		
+		public async Task<PhotoAssignResponseDTO?> AssignPhoto(string uri, string pass, PhotoAssignDTO dto, bool initial)
+		{
+			return await Methods.AssignPhoto(devClient, uri, pass, dto, initial);
+		}
+		
+		public async Task<DevResponseDTO?> DeletePhoto(string uri, string pass, string faceId)
+		{
+			return await Methods.DeletePhoto(devClient, uri, pass, faceId);
 		}
 		
 		public async Task<RecordsResponseDTO?> QueryRecords(string uri, string pass, RecordsQueryDTO dto)

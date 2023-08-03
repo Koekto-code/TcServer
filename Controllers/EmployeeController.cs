@@ -44,18 +44,21 @@ namespace TcServer.Controllers
 			if (employee is null)
 				return BadRequest();
 			
-			await dbCtx.Entry(employee).Collection(e => e.Photos).LoadAsync();
+			var ownPhotos = await dbCtx.Photos
+				.Where(p => p.EmployeeId == employee.Id)
+				.Select(p => p.Id)
+				.ToListAsync();
 			
 			var stPhotos = await dbCtx.Photos
-				.Where(p => p.DeviceId == employee.DeviceId)
 				.Where(p => p.EmployeeId == null)
+				.Select(p => p.Id)
 				.ToListAsync();
 
 			var viewdata = new Views.Employee.Index.ViewData
 			{
 				Company = parse.Company,
 				Employee = employee,
-				OwnPhotos = employee.Photos.ToList(),
+				OwnPhotos = ownPhotos,
 				StrangerPhotos = stPhotos
 			};
 

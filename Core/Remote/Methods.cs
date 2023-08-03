@@ -17,14 +17,17 @@ namespace TcServer.Core.Remote
 {
 	public static class Methods
 	{
-		public static async Task<T?> TryJson<T> (HttpResponseMessage response) where T: class
+		public static async Task<T?> TryJson<T> (
+			HttpResponseMessage response,
+			JsonSerializerOptions? options = null
+		) where T: class
 		{
 			if (response.IsSuccessStatusCode)
 			{
 				try
 				{
 					string content = await response.Content.ReadAsStringAsync();
-					return JsonSerializer.Deserialize<T>(content);
+					return JsonSerializer.Deserialize<T>(content, options);
 				}
 				catch (JsonException)
 				{
@@ -128,6 +131,62 @@ namespace TcServer.Core.Remote
 			}
 			catch (Exception) { return null; }
 			return await TryJson<PersonListResponseDTO>(response);
+		}
+		
+		public static async Task<PhotoAssignResponseDTO?> AssignPhoto
+		(
+			HttpClient client, string uri, string pass,
+			PhotoAssignDTO dto, bool initial = true
+		) {
+			HttpResponseMessage response = null!;
+			string path = uri + "/face";
+
+			Dictionary<string, string> formData = new Dictionary<string, string>
+			{
+				{ "pass", pass },
+				{ "personId", dto.personId },
+				{ "faceId", dto.faceId },
+				{ "isEasyWay", dto.isEasyWay ? "true" : "false" }
+			};
+			if (dto.base64 is not null)
+				formData["base64"] = dto.base64;
+			if (dto.url is not null)
+				formData["url"] = dto.url;
+			if (dto.bbox is not null)
+				formData["bbox"] = JsonSerializer.Serialize(dto.bbox);
+			
+			HttpContent formcontent = new FormUrlEncodedContent(formData);
+			try
+			{
+				if (initial)
+					response = await client.PostAsync(path, formcontent);
+				else response = await client.PutAsync(path, formcontent);
+			}
+			catch (Exception) { return null; }
+			return await TryJson<PhotoAssignResponseDTO>(response);
+		}
+		
+		public static async Task<DevResponseDTO?> DeletePhoto
+		(
+			HttpClient client, string uri, string pass,
+			string faceId
+		) {
+			HttpResponseMessage response = null!;
+			string path = uri + "/face/delete";
+
+			Dictionary<string, string> formData = new Dictionary<string, string>
+			{
+				{ "pass", pass },
+				{ "faceId", faceId }
+			};
+			
+			HttpContent formcontent = new FormUrlEncodedContent(formData);
+			try
+			{
+				response = await client.PostAsync(path, formcontent);
+			}
+			catch (Exception) { return null; }
+			return await TryJson<DevResponseDTO>(response);
 		}
 		
 		public static async Task<RecordsResponseDTO?> QueryRecords

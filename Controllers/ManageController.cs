@@ -33,23 +33,14 @@ namespace TcServer.Controllers
 		}
 		
 		[HttpPost("devices/add")]
-		[CookieAuthorize]
-		public async Task<IActionResult> AddDevice(string compname)
+		[CookieAuthorize(AccountType.Admin)]
+		public async Task<IActionResult> AddDevice(string compname, [FromBody] DeviceAddDTO dto)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
-			
-			DeviceAddDTO? dto = null;
-			using (StreamReader rd = new(Request.Body))
-			{
-				string body = await rd.ReadToEndAsync();
-				dto = JsonSerializer.Deserialize<DeviceAddDTO>(body);
-				if (dto is null)
-					return BadRequest();
-			}
+			Company? comp = null;
 			
 			using (var scope = Transactions.DbAsyncScopeDefault())
 			{
-				Company? comp = null;
 				if (client.Type == AccountType.Company)
 				{
 					await dbCtx.Entry(client).Reference(c => c.Company).LoadAsync();
@@ -95,14 +86,15 @@ namespace TcServer.Controllers
 				scope.Complete();
 			}
 			
-			var updSvc = Request.HttpContext.RequestServices.GetRequiredService<IUpdateService>();
-			await updSvc.UpdateDevicesStat();
+			var updSvc = HttpContext.RequestServices.GetRequiredService<IUpdateService>();
+			await updSvc.UpdateDevicesStat(comp.Id);
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
 		[HttpPost("devices/delete")]
-		[CookieAuthorize]
+		[CookieAuthorize(AccountType.Admin)]
 		public async Task<IActionResult> DeleteDevices(string compname, [FromBody] int[] innerIds)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
@@ -131,17 +123,21 @@ namespace TcServer.Controllers
 				{
 					if (!idDevMap.ContainsKey(id))
 						continue;
+					
+					await dbCtx.Entry(idDevMap[id]).Collection(d => d.Photos).LoadAsync();
 					dbCtx.Devices.Remove(idDevMap[id]);
 				}
 				
 				await dbCtx.SaveChangesAsync();
 				scope.Complete();
 			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
 		[HttpPost("devices/resetcallback")]
-		[CookieAuthorize]
+		[CookieAuthorize(AccountType.Admin)]
 		public async Task<IActionResult> ResetDevicesCallback(string compname, [FromBody] int[] innerIds)
 		{
 			string hostAddr = cfgSvc.Access()["Host:Address"]!;
@@ -149,13 +145,22 @@ namespace TcServer.Controllers
 			var remSvc = HttpContext.RequestServices.GetRequiredService<IRemoteService>();
 			var tasks = new List<Task<DevResponseDTO?>>();
 			var devices = new List<Device>();
+			Company? comp;
 			
-			using (var scope = Transactions.DbAsyncScopeDefault())
+			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				Company? comp = await dbCtx.Companies.FirstOrDefaultAsync(c => c.Name == compname);
+				comp = await dbCtx.Companies.FirstOrDefaultAsync(c => c.Name == compname);
 				if (comp is null)
 					return BadRequest();
 				
+				scope.Complete();
+			}
+			
+			var updSvc = Request.HttpContext.RequestServices.GetRequiredService<IUpdateService>();
+			await updSvc.UpdateDevicesStat(comp.Id);
+			
+			using (var scope = Transactions.DbAsyncScopeRC())
+			{
 				foreach (int i in innerIds)
 				{
 					Device? dev = await dbCtx.Devices
@@ -163,6 +168,9 @@ namespace TcServer.Controllers
 						.FirstOrDefaultAsync(d => d.InnerId == i);
 					
 					if (dev?.Password is null)
+						continue;
+					
+					if (!updSvc.DevStat[dev.SerialNumber])
 						continue;
 					
 					devices.Add(dev);
@@ -220,13 +228,15 @@ namespace TcServer.Controllers
 				{
 					if (!emplMap.ContainsKey(id))
 						continue;
-
+					
 					dbCtx.Employees.Remove(emplMap[id]);
 				}
 				
 				await dbCtx.SaveChangesAsync();
 				scope.Complete();
 			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 
@@ -263,76 +273,301 @@ namespace TcServer.Controllers
 				await dbCtx.SaveChangesAsync();
 				scope.Complete();
 			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
 		[HttpPost("employees/add")]
 		[CookieAuthorize]
-		public async Task<IActionResult> AddEmployee
-		(
-			string compname, string unitname,
-			string name, string title, string? addr, int dev
-		) {
+		public async Task<IActionResult> AddEmployee(int unitid, [FromBody] EmployeeAddDTO dto)
+		{
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			
+			Unit? unit;
+			int idSel = 1;
+			List<Device> devices;
+			
+			try
+			{
+				// if the exception is thrown, chances that
+				// an emloyee with same InnerCompId is already added
+				
+				using (var scope = Transactions.DbAsyncScopeRC())
+				{
+					unit = await dbCtx.Units.FindAsync(unitid);
+					if (unit is null)
+						return BadRequest();
+					
+					if (!await Utility.IsAuthorizedData(this, client, unit))
+						return Unauthorized();
+					
+					// get free innerId for employee within Company
+					List<int> innerIds = await dbCtx.Employees
+						.Where(e => e.CompanyId == unit.CompanyId)
+						.Select(e => e.InnerCompId)
+						.ToListAsync();
+					innerIds.Sort();
+
+					for (int i = 0; i < innerIds.Count; ++i) {
+						if (innerIds[i] != idSel) break;
+						++idSel;
+					}
+					
+					devices = await dbCtx.Devices
+						.Where(d => d.CompanyId == unit.CompanyId)
+						.Where(d => d.Password != null)
+						.ToListAsync();
+					
+					Employee empl = new()
+					{
+						UnitId = unit.Id,
+						CompanyId = unit.CompanyId,
+						InnerCompId = idSel,
+						JobTitle = dto.JobTitle,
+						Name = dto.Name,
+						Phone = dto.Phone?.Length > 0 ? dto.Phone : null,
+						HomeAddress = dto.HomeAddress?.Length > 0 ? dto.HomeAddress : null,
+						Notify = Employee.NotifyMode.None,
+						EntryDate = DateTime.Today.ToString("yyyy-MM-dd"),
+						
+						// guessing sync 'll be successful. change later if not
+						RemoteSynchronized = true
+					};
+					
+					await dbCtx.Employees.AddAsync(empl);
+					await dbCtx.SaveChangesAsync();
+					
+					scope.Complete();
+				}
+			}
+			catch (Exception) { return BadRequest(); }
+			
+			List<Task<PersonResponseDTO?>> tasks = new();
+			foreach (var dev in devices)
+			{
+				await Methods.RemoveEmployees(devClient, dev.Address, dev.Password!, new() { idSel.ToString() });
+				
+				tasks.Add (
+					Methods.AddEmployee (
+						devClient, dev.Address, dev.Password!,
+						new() {
+							id = idSel.ToString(),
+							name = dto.Name
+						}
+					)
+				);
+			}
+			PersonResponseDTO?[] complete = await Task.WhenAll(tasks);
+			
+			foreach (var res in complete)
+			{
+				if (!(res?.success == true))
+				{
+					using (var scope = Transactions.DbAsyncScopeDefault())
+					{
+						var empl = await dbCtx.Employees
+							.Where(e => e.CompanyId == unit.CompanyId)
+							.FirstOrDefaultAsync(e => e.InnerCompId == idSel);
+						
+						if (empl is null)
+							return BadRequest();
+						
+						empl.RemoteSynchronized = false;
+						
+						await dbCtx.SaveChangesAsync();
+						scope.Complete();
+					}
+					break;
+				}
+			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
+			return Ok();
+		}
+		
+		[HttpPost("employees/addphoto")]
+		[CookieAuthorize]
+		public async Task<IActionResult> AssignPhoto(int emplid, int photoid)
+		{
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			Employee? empl;
+			Photo? photo;
+			Device dev;
+			
+			using (var scope = Transactions.DbAsyncScopeRC())
+			{
+				empl = await dbCtx.Employees.FindAsync(emplid);
+				if (empl is null)
+					return BadRequest();
+				
+				if (!await Utility.IsAuthorizedData(this, client, empl))
+					return Unauthorized();
+				
+				photo = await dbCtx.Photos.FindAsync(photoid);
+				if (photo is null || photo.EmployeeId is not null)
+					return BadRequest();
+				
+				await dbCtx.Entry(photo).Reference(p => p.Device).LoadAsync();
+				if (photo.Device.Password is null)
+					return BadRequest();
+				
+				if (!await Utility.IsAuthorizedData(this, client, photo.Device))
+					return Unauthorized();
+				
+				dev = photo.Device;
+				scope.Complete();
+			}
+			
+			var remSvc = HttpContext.RequestServices.GetRequiredService<IRemoteService>();
+			
+			await remSvc.DeletePhoto(dev.Address, dev.Password, empl.InnerCompId.ToString());
+			
+			// @fixme: deserializes to null on success
+			await remSvc.AssignPhoto(dev.Address, dev.Password, new()
+			{
+				personId = empl.InnerCompId.ToString(),
+				faceId = empl.InnerCompId.ToString(),
+				base64 = photo.Base64
+			});
+			
+			int photoLimit = Convert.ToInt32(cfgSvc.Access()["Misc:EmployeePhotoLimit"]!);
+			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				photo = await dbCtx.Photos.FindAsync(photoid);
+				if (photo is null || photo.EmployeeId is not null)
+					return BadRequest();
+				
+				List<Photo> ph = await dbCtx.Photos
+					.Where(p => p.EmployeeId == photo.EmployeeId)
+					.ToListAsync();
+				
+				var rand = new Random();
+				while (ph.Count > photoLimit)
+				{
+					int rem = rand.Next() % ph.Count;
+					dbCtx.Photos.Remove(ph[rem]);
+					ph.RemoveAt(rem);
+				}
+				photo.EmployeeId = empl.Id;
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
+			return Ok();
+		}
+		
+		[HttpPost("employees/update")]
+		[CookieAuthorize]
+		public async Task<IActionResult> UpdateEmployee(int emplid, [FromBody] EmployeeUpdateDTO dto)
+		{
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			
+			Employee? empl;
+			List<Device> devices;
+			
+			bool devSyncNeeded = false;
+			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				empl = await dbCtx.Employees.FindAsync(emplid);
+				if (empl is null)
+					return BadRequest();
+				
+				devices = await dbCtx.Devices
+					.Where(d => d.Password != null)
+					.ToListAsync();
+				
+				if (dto.JobTitle is not null)
+					empl.JobTitle = dto.JobTitle;
+				
+				if (dto.Name is not null)
+				{
+					devSyncNeeded = true;
+					empl.Name = dto.Name;
+				}
+				
+				empl.HomeAddress = dto.HomeAddress;
+				if (empl.HomeAddress?.Length == 0)
+					empl.HomeAddress = null;
+				
+				empl.Phone = dto.Phone;
+				if (empl.Phone?.Length == 0)
+					empl.Phone = null;
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
+			
+			// sync with device
+			bool sync = true;
+			if (devSyncNeeded)
+			{
+				var remSvc = HttpContext.RequestServices.GetRequiredService<IRemoteService>();
+				foreach (var dev in devices)
+				{
+					var updStatus = await remSvc.UpdateEmployee (
+						dev.Address, dev.Password!,
+						new() {
+							id = empl.InnerCompId.ToString(),
+							name = empl.Name
+						}
+					);
+					sync &= updStatus?.success == true;
+				}
+			}
+			
+			// keep track of whether the employee should be resynchronized later or not
+			// note: if sync is true but empl.RemSync is not, then the employee data should be fully
+			// synchronized later so leave this as false
+			if (empl.RemoteSynchronized && !sync)
+			{
+				using (var scope = Transactions.DbAsyncScopeDefault())
+				{
+					empl = await dbCtx.Employees.FindAsync(emplid);
+					if (empl is null)
+						return BadRequest();
+					
+					empl.RemoteSynchronized = sync;
+					
+					await dbCtx.SaveChangesAsync();
+					scope.Complete();
+				}
+			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
+			return Ok();
+		}
+		
+		[HttpPost("employees/notify")]
+		[CookieAuthorize]
+		public async Task<IActionResult> SetEmplNotify(string compname, int emplid, uint state)
+		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
 			
 			using (var scope = Transactions.DbAsyncScopeDefault())
 			{
-				var parse = await Utility.ParseViewpath(this, compname, unitname, client, false);
-				if (parse?.Active is null)
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
 					return BadRequest();
 				
-				Unit unit = parse.Active;
+				var empl = await dbCtx.Employees
+					.Where(e => e.CompanyId == parse.Company.Id)
+					.FirstOrDefaultAsync(e => e.InnerCompId == emplid);
 				
-				// get free innerId for employee within Company
-				List<int> innerIds = await dbCtx.Employees
-					.Where(e => e.CompanyId == unit.CompanyId)
-					.Select(e => e.InnerCompId)
-					.ToListAsync();
-				innerIds.Sort();
-
-				int idSel = 1;
-				for (int i = 0; i < innerIds.Count; ++i) {
-					if (innerIds[i] != idSel) break;
-					++idSel;
-				}
-				
-				Device? device = await dbCtx.Devices
-					.Where(d => d.CompanyId == unit.CompanyId)
-					.FirstOrDefaultAsync(d => d.InnerId == dev);
-				
-				if (device?.Password is null)
+				if (empl is null)
 					return BadRequest();
 				
-				PersonResponseDTO? resp = await Methods.AddEmployee (
-					devClient, device.Address, device.Password,
-					new() {
-						id = idSel.ToString(),
-						name = name
-					}
-				);
-
-				Employee empl = new()
-				{
-					UnitId = unit.Id,
-					CompanyId = unit.CompanyId,
-					InnerCompId = idSel,
-					DeviceId = device.Id,
-					JobTitle = title,
-					Name = name,
-					HomeAddress = (addr is null || addr == "") ? null : addr,
-					EntryDate = DateTime.Today.ToString("yyyy-MM-dd"),
-					
-					// the employee can be still added without sync with remote device
-					// (considering it's just disabled if so)
-					RemoteSynchronized = resp?.success ?? false
-				};
-
-				await dbCtx.Employees.AddAsync(empl);
+				empl.Notify = (Employee.NotifyMode)state;
+				
 				await dbCtx.SaveChangesAsync();
-				
 				scope.Complete();
 			}
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
@@ -345,18 +580,24 @@ namespace TcServer.Controllers
 
 			var client = (Account)HttpContext.Items["authEntity"]!;
 			
-			var parse = await Utility.ParseViewpath(this, compname, null, client, false);
-			if (parse?.Company is null)
-				return BadRequest();
-
-			var unit = new Unit()
+			using (var scope = Transactions.DbAsyncScopeDefault())
 			{
-				CompanyId = parse.Company.Id,
-				Name = name
-			};
-			await dbCtx.Units.AddAsync(unit);
-			await dbCtx.SaveChangesAsync();
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
+					return BadRequest();
+
+				var unit = new Unit()
+				{
+					CompanyId = parse.Company.Id,
+					Name = name
+				};
+				await dbCtx.Units.AddAsync(unit);
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 
@@ -365,14 +606,20 @@ namespace TcServer.Controllers
 		public async Task<IActionResult> DeleteUnit(string compname, string unitname)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
-
-			var parse = await Utility.ParseViewpath(this, compname, unitname, client, false);
-			if (parse?.Active is null)
-				return BadRequest();
 			
-			dbCtx.Units.Remove(parse.Active);
-			await dbCtx.SaveChangesAsync();
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, unitname, client, false);
+				if (parse?.Active is null)
+					return BadRequest();
+				
+				dbCtx.Units.Remove(parse.Active);
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 
@@ -381,14 +628,20 @@ namespace TcServer.Controllers
 		public async Task<IActionResult> RenameUnit(string compname, string unitname, string newname)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
-
-			var parse = await Utility.ParseViewpath(this, compname, unitname, client, false);
-			if (parse?.Active is null)
-				return BadRequest();
-
-			parse.Active.Name = newname;
-			await dbCtx.SaveChangesAsync();
 			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, unitname, client, false);
+				if (parse?.Active is null)
+					return BadRequest();
+
+				parse.Active.Name = newname;
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
@@ -397,15 +650,21 @@ namespace TcServer.Controllers
 		public async Task<IActionResult> DeleteCompany(string compname)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
-
-			var parse = await Utility.ParseViewpath(this, compname, null, client, false);
-			if (parse?.Company is null)
-				return BadRequest();
 			
-			await dbCtx.Entry(parse.Company).Reference(c => c.Account).LoadAsync();
-			dbCtx.Accounts.Remove(parse.Company.Account);
-			await dbCtx.SaveChangesAsync();
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
+					return BadRequest();
+				
+				await dbCtx.Entry(parse.Company).Reference(c => c.Account).LoadAsync();
+				dbCtx.Accounts.Remove(parse.Company.Account);
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
@@ -414,14 +673,25 @@ namespace TcServer.Controllers
 		public async Task<IActionResult> SetCompTimeZone(string compname, double offset)
 		{
 			var client = (Account)HttpContext.Items["authEntity"]!;
-
-			var parse = await Utility.ParseViewpath(this, compname, null, client, false);
-			if (parse?.Company is null)
-				return BadRequest();
 			
-			parse.Company.GMTOffset = offset;
-			await dbCtx.SaveChangesAsync();
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
+					return BadRequest();
+				
+				var conf = JsonSerializer.Deserialize<Company.Settings>(parse.Company.JsonSettings);
+				if (conf is null)
+					conf = new(); // ignore error
+				
+				conf.GMTOffset = offset;
+				parse.Company.JsonSettings = JsonSerializer.Serialize(conf, JsonSerializerOptions.Default);
+				
+				await dbCtx.SaveChangesAsync();
+				scope.Complete();
+			}
 			
+			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
 		}
 		
@@ -481,11 +751,8 @@ namespace TcServer.Controllers
 		
 		[HttpPost("workshifts/delete")]
 		[CookieAuthorize]
-		public async Task<IActionResult> DeleteWorkshifts(string compname, [FromBody] int[]? innerIds)
+		public async Task<IActionResult> DeleteWorkshifts(string compname, [FromBody] int[] innerIds)
 		{
-			if (innerIds is null)
-				return BadRequest();
-			
 			var client = (Account)HttpContext.Items["authEntity"]!;
 			
 			using (var scope = Transactions.DbAsyncScopeDefault())

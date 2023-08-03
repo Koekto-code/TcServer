@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 using TcServer;
 using TcServer.Storage;
@@ -16,7 +18,9 @@ namespace TcServer.Services
 {
 	public interface IUpdateService
 	{
-		Task UpdateDevicesStat();
+		IReadOnlyDictionary<string, bool> DevStat { get; }
+		
+		Task UpdateDevicesStat(int? compid = null);
 	}
 	
 	public class UpdateService: IUpdateService
@@ -24,26 +28,41 @@ namespace TcServer.Services
 		protected readonly HttpClient devClient;
 		protected readonly CoreContext dbCtx;
 		
-		public UpdateService(IHttpClientFactory clientFactory, CoreContext dbctx)
+		// stores info about whether each device is online or not
+		protected Dictionary<string, bool> devStat { get; set; } = new();
+		
+		public UpdateService(IHttpClientFactory clientFactory, IServiceProvider sp)
 		{
 			devClient = clientFactory.CreateClient("Remote");
-			dbCtx = dbctx;
+			dbCtx = sp.GetRequiredService<CoreContext>();
 		}
 		
-		public async Task UpdateDevicesStat()
+		public IReadOnlyDictionary<string, bool> DevStat
 		{
-			var devices = await dbCtx.Devices.ToListAsync();
+			get { return new ReadOnlyDictionary<string, bool>(devStat); }
+		}
+		
+		public async Task UpdateDevicesStat(int? compid)
+		{
+			List<Device> devices;
+			using (var scope = Transactions.DbAsyncScopeRC())
+			{
+				if (compid is null)
+					devices = await dbCtx.Devices.ToListAsync();
+				else devices = await dbCtx.Devices
+					.Where(d => d.CompanyId == compid)
+					.ToListAsync();
+				
+				scope.Complete();
+			}
 			
 			var tasks = new Task<DevResponseDTO?>[devices.Count];
 			for (int i = 0; i != devices.Count; ++i)
-			{
 				tasks[i] = Methods.GetDeviceKey(devClient, devices[i].Address);
-			}
-			await Task.WhenAll(tasks);
-			for (int i = 0; i != devices.Count; ++i)
-			{
-				dbCtx.DevicesStat[devices[i].SerialNumber] = tasks[i] is not null;
-			}
+			
+			var tdone = await Task.WhenAll(tasks);
+			for (int i = 0; i != tdone.Length; ++i)
+				devStat[devices[i].SerialNumber] = tdone[i] is not null;
 		}
 	}
 }

@@ -4,6 +4,11 @@
 	font-family: 'poppins', sans-serif;
 }
 
+:root {
+	--form-width: 400px;
+	--form-height: 500px;
+}
+
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
 	display: none;
@@ -22,12 +27,12 @@ section {
 
 .form-box {
 	position: relative;
-	width: 400px;
-	height: 500px;
+	width: var(--form-width);
+	height: var(--form-height);
 	background: transparent;
 	border: 2px solid rgba(255, 255, 255, 0.5);
 	backdrop-filter: blur(15px);
-	border-radius: 20px;
+	border-radius: 10px;
 	display: flex;
 	justify-content: center;
 	align-items: center;

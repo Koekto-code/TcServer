@@ -11,6 +11,9 @@
   string viewDate = Model.SelectedDate ?? "";
   bool isRootView = Model.Company is null;
   bool isAdmin = Model.AccType == AccountType.Admin;
+  
+  var recIdSorted = Model.Records.OrderBy(p => p.Key.InnerCompId).ToList();
+  var recNameSorted = Model.Records.OrderBy(p => p.Key.Name).ToList();
 }
 
 <!DOCTYPE html>
@@ -43,11 +46,12 @@
                     <div class="dropdown main-dd" dd-show="" id="dd1">
                       <div class="dd-title" dd-parent="dd1" id="dd1_h">@(Model.Active is null ? "Отдел" : Model.Active.Name)</div>
                       <div class="dd-list">
-                        @for (int i = 0; i != Model.Units.Count; ++i)
-                        {
+                      @for (int i = 0; i != Model.Units.Count; ++i)
+                      {
+                        if (i != 0) {<div class="dd-sep"></div>}
                         <input id="dd1_i@(i)" class="dd-item" type="radio" onclick="changeUnit('@Model.Units[i]')" />
-                        <label for="dd1_i@(i)" class="dd-label" dd-header="dd1_h">@Model.Units[i]</label>
-                        }
+                        <label for="dd1_i@(i)" id="dd1_l@(i)" class="dd-label" dd-header="dd1_h">@Model.Units[i]</label>
+                      }
                       </div>
                     </div>
                     @if (isAdmin)
@@ -56,11 +60,12 @@
                     <div class="dropdown rightpos main-dd" dd-show="" id="dd0">
                       <div class="dd-title" dd-parent="dd0" id="dd0_h">@(Model.Company is null ? "Организация" : Model.Company.Name)</div>
                       <div class="dd-list">
-                        @for (int i = 0; i != Model.Companies.Count; ++i)
-                        {
+                      @for (int i = 0; i != Model.Companies.Count; ++i)
+                      {
+                        if (i != 0) {<div class="dd-sep"></div>}
                         <input id="dd0_i@(i)" class="dd-item" type="radio" onclick="changeComp('@Model.Companies[i]')" />
                         <label for="dd0_i@(i)" class="dd-label" dd-header="dd0_h">@Model.Companies[i]</label>
-                        }
+                      }
                       </div>
                     </div>
                     }
@@ -84,12 +89,12 @@
         </div>
         <div class="flex-normal">
           <div class="inset">
-            <h5 id="empl-counter1">Сотрудники: @Model.Records.Count</h5>
-            <div class="scroll-table flex-col">
+            <p id="empl-counter1">Сотрудники: @Model.EmplsTotal (текущий отдел: @Model.Records.Count). Номера телефонов: @Model.EmplsWithPhonesTotal (@Model.EmplsWithPhones)</p>
+            <div class="scroll-table flex-col" id="empl-table1">
               <table class="scroll-table-head">
                 <thead>
                   <tr>
-                    <th>Имя</th>
+                    <th>Сотрудник</th>
                     <th class="st-id-column">ID</th>
                     <th class="st-actions-column">
                       <div class="checkbox-overlay middlepos">
@@ -102,13 +107,19 @@
               <div class="scroll-table-body">
                 <table>
                   <tbody id="tbody1">
-                  @foreach (var entry in Model.Records)
+                  @foreach (var entry in recIdSorted)
                   {
                     <tr>
                       <td>
                         <div class="flex-col">
                           <a class="empl-name-field" onclick="employeePage(@entry.Key.InnerCompId)">@entry.Key.Name</a>
-                          <p class="empl-title-field">@entry.Key.JobTitle</p>
+                          <div class="flex-row">
+                            <p class="empl-title-field">@entry.Key.JobTitle</p>
+                            @if (entry.Key.Phone is not null)
+                            {
+                            <p class="empl-title-field">(@entry.Key.Phone)</p>
+                            }
+                          </div>
                         </div>
                       </td>
                       <td class="st-id-column"><p class="rightpos wfit">@entry.Key.InnerCompId</p></td>
@@ -154,7 +165,7 @@
                   <div class="scroll-table-body">
                     <table>
                       <tbody>
-                      @foreach(var entry in Model.Records)
+                      @foreach (var entry in recNameSorted)
                       {
                         List<string> comments = new();
 
@@ -228,6 +239,7 @@
             <div class="dd-list" id="dd3_l">
               @for (int i = 0; i != Model.Units.Count; ++i)
               {
+              if (i != 0) {<div class="dd-sep"></div>}
               <input id="dd3_i@(i)" class="dd-item" type="radio" onclick="transferEmployees('@Model.Units[i]')"/>
               <label for="dd3_i@(i)" class="dd-label" dd-header="dd3_h">@Model.Units[i]</label>
               }
@@ -241,24 +253,34 @@
       <div class="flex-col space2" style="margin-left: 5px;">
         <h4>Организация</h4>
         <div class="flex-col leftpadded">
-          @if (!isRootView)
-          {
+        @if (!isRootView)
+        {
           <button class="menubtn" onclick="window.location.href=`/company?compname=${compName}`">Управление</button>
           <button class="menubtn" onclick="window.location.href=`/workshifts?compname=${compName}`">Рабочие смены</button>
-          <button class="menubtn" onclick="window.location.href=`/devices?compname=${compName}`">Терминалы</button>
-          <button class="menubtn" id="excel-export-btn">Экспорт отчётов</button>
-          }
           @if (isAdmin)
           {
+          <button class="menubtn" onclick="window.location.href=`/devices?compname=${compName}`">Терминалы</button>
+          }
+          <button class="menubtn" id="excel-export-btn">Экспорт отчётов</button>
+        }
+        @if (isAdmin)
+        {
           <button class="menubtn" id="create-comp-btn">Создать</button>
           @if (!isRootView)
           {
-            <button class="menubtn" onclick="resetView()">Выйти</button>
-            <button class="menubtn" onclick="deleteCurrentComp()" id="comp-del-btn">Удалить</button>
+          <button class="menubtn" onclick="resetView()">Выйти</button>
+          <button class="menubtn" onclick="deleteCurrentComp()" id="comp-del-btn">Удалить</button>
           }
-          }
+        }
         </div>
       </div>
+      }
+    </div>
+    <div class="flex-row" style="margin-top: 10px;">
+      <button class="menubtn leftpos" onclick="accountExit()">Выйти из аккаунта</button>
+      @if (isAdmin)
+      {
+      <button class="menubtn rightpos" id="admin-pwd-reset-btn">Сбросить пароль</button>
       }
     </div>
   </div>
@@ -268,21 +290,14 @@
         <div class="flex-col wfull leftpos">
           <input type="text" class="text-input w70-ti" id="empl-sel-name" placeholder="Полное имя">
           <input type="text" class="text-input w70-ti" id="empl-sel-title" placeholder="Должность">
-          <input type="text" class="text-input w70-ti" id="empl-sel-addr" placeholder="Домашний адрес (не обязательно)">
+          <div class="flex-row">
+            <input type="text" class="text-input w70-ti" id="empl-sel-addr" placeholder="Домашний адрес (не обязательно)">
+            <input type="text" class="text-input w70-ti" id="empl-sel-phone" placeholder="Номер телефона (не обязательно)">
+          </div>
         </div>
       <div class="flex-row" style="margin-top: 5px;">
         <div class="leftpos">
           <button onclick="createEmployee()">Добавить</button>
-        </div>
-        <div class="dropdown rightpos" dd-show="" id="dd2">
-          <div class="dd-title" dd-value="" dd-parent="dd2" id="dd2_h">Терминал</div>
-          <div class="dd-list">
-            @for (int i = 0; i != Model.AvailableDevices.Count; ++i)
-            {
-            <input id="dd2_i@(i)" class="dd-item" type="radio" onclick="emplAssignedDevId=@(i)" />
-            <label for="dd2_i@(i)" class="dd-label" dd-header="dd2_h">@Model.AvailableDevices[i].InnerId</label>
-            }
-          </div>
         </div>
       </div>
     </div>
@@ -312,6 +327,7 @@
             <label for="ddex_i" class="dd-label" dd-value="_all_" dd-header="ddex_h">Все отделы</label>
             @for (int i = 0; i != Model.Units.Count; ++i)
             {
+            if (i != 0) {<div class="dd-sep"></div>}
             <input id="ddex_i@(i)" class="dd-item" type="radio" />
             <label for="ddex_i@(i)" class="dd-label" dd-header="ddex_h">@Model.Units[i]</label>
             }
@@ -348,6 +364,37 @@
       </div>
     </form>
   </div>
+  @if (isAdmin)
+  {
+  <div class="ctxmenu shade-menu plate" id="admin-pwd-reset-menu">
+    <div class="flex-row">
+      <p id="pwd-reset-title">Сброс пароля для любой учетной записи</p>
+    </div>
+    <form method="post" asp-action="ResetPwdPost" asp-controller="Main" id="admin-pwd-reset-form">
+      <div class="flex-col hfull">
+          <div class="flex-col wfull leftpos">
+            <div class="flex-row ccti-cont">
+              <ion-icon name="mail-outline" class="ccreate-icon"></ion-icon>
+              <input type="text" name="email" class="ccti" id="pwd-reset-sel-email" placeholder="Логин" required>
+            </div>
+            <div class="flex-row ccti-cont">
+              <ion-icon name="lock-closed-outline" class="ccreate-icon"></ion-icon>
+              <input type="password" name="password" class="ccti" id="pwd-reset-sel-pass" placeholder="Пароль" required>
+            </div>
+            <div class="flex-row ccti-cont">
+              <ion-icon name="lock-closed-outline" class="ccreate-icon"></ion-icon>
+              <input type="password" id="pwd-reset-sel-pass1" class="ccti" placeholder="Повтор пароля" required>
+            </div>
+          </div>
+        <div class="flex-row" style="margin-top: 5px;">
+          <div class="leftpos">
+            <button id="pwd-reset-submit-btn">Сбросить</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  }
 
   <div id="shade-overlay"></div>
 </body>
@@ -357,6 +404,7 @@
     const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(compName))');
     const unitName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(unitName))');
     const viewDate = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(viewDate))');
+    const unitId = @(Model.Active?.Id ?? 0);
   </script>
 }
 

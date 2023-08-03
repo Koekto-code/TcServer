@@ -44,9 +44,7 @@ namespace TcServer.Controllers
 		[HttpGet("logout")]
 		public IActionResult Logout()
 		{
-			foreach (var cook in Request.Cookies.Keys)
-				Response.Cookies.Delete(cook);
-			
+			Response.Cookies.Delete("accessToken");
 			return RedirectToAction("Index");
 		}
 
@@ -97,39 +95,30 @@ namespace TcServer.Controllers
 				HttpOnly = true,
 				Expires = DateTime.FromFileTime(result.expiration)
 			};
-
+			
+			foreach (var cook in Request.Cookies.Keys)
+				Response.Cookies.Delete(cook);
+			
 			Response.Cookies.Append("accessToken", result.accessToken, cookieOpts);
 			return RedirectToAction("Index");
 		}
 		
-		[HttpPost("changepwd")]
-		public async Task<IActionResult> ChangePwdPost()
+		[HttpPost("resetpwd")]
+		[CookieAuthorize(AccountType.Admin)]
+		public async Task<IActionResult> ResetPwdPost()
 		{
-			// @todo
 			var accountSvc = Request.HttpContext.RequestServices.GetRequiredService<IAccountService>();
 
-			string email = Request.Form["email"]!;
-			string password = Request.Form["password"]!;
-
-			var dto = new LoginDTO()
+			var dto = new ChangePwdDTO()
 			{
-				Email = email,
-				Password = password
+				Email = Request.Form["email"]!,
+				NewPassword = Request.Form["password"]!
 			};
 
-			var concolor = Console.ForegroundColor;
-
-			var result = await accountSvc.LoginAsync(dto);
-			if (result.expiration == -1)
+			var result = await accountSvc.ChangePwdAsync(dto, true);
+			if (result is null)
 				return BadRequest();
 
-			var cookieOpts = new CookieOptions()
-			{
-				HttpOnly = true,
-				Expires = DateTime.FromFileTime(result.expiration)
-			};
-
-			Response.Cookies.Append("accessToken", result.accessToken, cookieOpts);
 			return RedirectToAction("Index");
 		}
 

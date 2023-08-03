@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Globalization;
 using System.Text;
+using System.Net.Http.Headers;
 
 using TcServer.Storage;
 using TcServer.Services;
@@ -25,14 +26,30 @@ builder.Services.AddDbContext<CoreContext> (
 	}
 );
 
-builder.Services.AddSingleton<IConfigService, ConfigService>();
+builder.Services.AddDbContext<SyncContext> (
+	options => {
+		options.UseSqlServer (
+			builder.Configuration.GetConnectionString("DefaultConnection")!
+		);
+		options.EnableSensitiveDataLogging(false);
+	},
+	ServiceLifetime.Singleton
+);
+
+builder.Services.AddHttpClient("Remote", c => c.Timeout = TimeSpan.FromSeconds(10.0));
+builder.Services.AddHttpClient("WhatsAppNotify", (c) => {
+	c.Timeout = TimeSpan.FromSeconds(5.0);
+	c.DefaultRequestHeaders.Add("Authorization", builder.Configuration["WAPPI:Token"]);
+});
+
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<IRemoteService, RemoteService>();
 
+builder.Services.AddSingleton<IConfigService, ConfigService>();
+builder.Services.AddSingleton<IUpdateService, UpdateService>();
+
 builder.Services.AddHostedService<SyncService>();
-builder.Services.AddHttpClient("Remote", c => c.Timeout = TimeSpan.FromSeconds(10.0));
 
 var app = builder.Build();
 

@@ -15,7 +15,7 @@ namespace TcServer.Utility
 			{
 				DateTime? datebeg = r.DateBegin is null ? null : DateTime.ParseExact(r.DateBegin, "yyyy-MM-dd", null);
 
-				if ((datebeg is null || datebeg < date) &&
+				if ((datebeg is null || datebeg <= date) &&
 					(r.DateEnd is null || DateTime.ParseExact(r.DateEnd, "yyyy-MM-dd", null) > date))
 				{
 					ruleSelected = r;

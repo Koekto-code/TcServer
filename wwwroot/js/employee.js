@@ -23,12 +23,11 @@ function addSelectedPhotos()
 	};
 	
 	selected.forEach(img => {
-		fetch(`/employees/addphoto?compid=${companyId}&emplid=${employeeId}&photoid=${img.dataset.value}`, options)
+		fetch(`/manage/employees/addphoto?&emplid=${emplId}&photoid=${img.dataset.value}`, options)
 		.then((response) => {
 			if (!response.ok) {
 				throw new Error(`Fetch error: ${response.status}`);
 			}
-			return response.blob();
 		})
 		.then(() => {
 			--workers;
@@ -36,6 +35,51 @@ function addSelectedPhotos()
 				window.location.reload();
 		});
 	});
+}
+
+function toggleNotifications()
+{
+	const cb = document.getElementById("empl-notify");
+	fetch(`/manage/employees/notify?compname=${compName}&emplid=${employeeId}&state=${cb.checked ? 1 : 0}`, { method: 'POST' })
+	.then((response) => {
+		if (!response.ok) {
+			throw new Error(`Fetch error: ${response.status}`);
+		}
+	})
+}
+
+function highlightSaveBtn()
+{
+	const btn = document.getElementById('settings-save-btn');
+	btn.classList.remove('btn-inactive');
+}
+
+function saveChanges()
+{
+	const title = document.getElementById('empl-jobtitle');
+	// const name = document.getElementById('empl-name');
+	const addr = document.getElementById('empl-addr');
+	const phone = document.getElementById('empl-phone');
+	
+	const options = {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			'JobTitle': title.value,
+			// 'Name': name.value,
+			'HomeAddress': addr.value,
+			'Phone': phone.value
+		})
+	};
+	fetch(`/manage/employees/update?emplid=${emplId}`, options)
+	.then((response) => {
+		if (!response.ok) {
+			throw new Error(`Fetch error: ${response.status}`);
+		}
+		window.location.reload();
+	})
 }
 
 const cfold = document.getElementById('fold1');

@@ -12,7 +12,7 @@ namespace TcServer.Storage.Core
 		[Key]
 		public int Id { get; set; }
 
-		// many : 1, required for AtdRecord
+		// many : 1, required for AtdRecord, cascade
 		public int EmployeeId { get; set; }
 		public Employee Employee { get; set; } = null!;
 

@@ -9,6 +9,11 @@ namespace TcServer.Storage.Core
 {
 	public class Company
 	{
+		public class Settings
+		{
+			public double GMTOffset { get; set; } = 0.0;
+		}
+		
 		[Key]
 		public int Id { get; set; }
 
@@ -32,7 +37,7 @@ namespace TcServer.Storage.Core
 
 		public int NextDeviceId { get; set; } = 1;
 		
-		public double GMTOffset { get; set; } = 0.0;
+		public string JsonSettings { get; set; } = "{}";
 
 		// unique
 		[Required]

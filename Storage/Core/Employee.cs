@@ -10,17 +10,19 @@ namespace TcServer.Storage.Core
 {
 	public class Employee
 	{
+		public enum NotifyMode: uint
+		{
+			None = 0,
+			
+			EnableWhatsApp = 1
+		}
+		
 		[Key]
 		public int Id { get; set; }
-		
-		// many : 1, required for Employee
-		public int DeviceId { get; set; }
-		public Device Device { get; set; } = null!;
 
-
-		// many : 1, not required
-		public int? UnitId { get; set; }
-		public Unit? Unit { get; set; }
+		// many : 1, required
+		public int UnitId { get; set; }
+		public Unit Unit { get; set; } = null!;
 
 
 		// many : 1, required for Employee
@@ -31,8 +33,8 @@ namespace TcServer.Storage.Core
 		public int InnerCompId { get; set;}
 
 
-		// 1 : many, required for AtdRecord
-		public ICollection<AtdRecord> AtdRecords = new List<AtdRecord>();
+		// 1 : many, required for AtdRecord, cascade deletion
+		public ICollection<AtdRecord> AtdRecords { get; set; } = new List<AtdRecord>();
 
 		[Required]
 		public string JobTitle { get; set; } = null!;
@@ -41,8 +43,12 @@ namespace TcServer.Storage.Core
 		public string Name { get; set; } = null!;
 
 		public string? HomeAddress { get; set; }
+		
+		public string? Phone { get; set; }
 
 		public bool RemoteSynchronized { get; set; } = false;
+		
+		public NotifyMode Notify { get; set; } = NotifyMode.None;
 
 		[Required]
 		[StringLength(10)]

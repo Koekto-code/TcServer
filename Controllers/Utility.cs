@@ -13,6 +13,8 @@ using TcServer.Core;
 using TcServer.Utility;
 using Microsoft.EntityFrameworkCore;
 
+// Shared code for controllers
+
 namespace TcServer.Controllers
 {
 	public static class Utility
@@ -28,7 +30,41 @@ namespace TcServer.Controllers
 			public Unit? Active { get; set; } = null;
 		}
 		
-		// Frequently used code for handling company and units
+		public static async Task<bool> IsAuthorizedData(Controller self, Account acc, int compId)
+		{
+			if (acc.Type == AccountType.Admin)
+				return true;
+			
+			if (acc.Type == AccountType.Company)
+			{
+				var dbCtx = self.Request.HttpContext.RequestServices
+					.GetRequiredService<CoreContext>();
+				
+				await dbCtx.Entry(acc).Reference(a => a.Company).LoadAsync();
+				if (acc.Company!.Id != compId)
+					return false;
+				
+				return true;
+			}
+			return false;
+		}
+		
+		public static async Task<bool> IsAuthorizedData(Controller self, Account acc, Employee empl)
+		{
+			return await IsAuthorizedData(self, acc, empl.CompanyId);
+		}
+		public static async Task<bool> IsAuthorizedData(Controller self, Account acc, Unit unit)
+		{
+			return await IsAuthorizedData(self, acc, unit.CompanyId);
+		}
+		public static async Task<bool> IsAuthorizedData(Controller self, Account acc, Device dev)
+		{
+			if (dev.CompanyId is null)
+				return acc.Type == AccountType.Admin;
+			
+			return await IsAuthorizedData(self, acc, dev.CompanyId.Value);
+		}
+		
 		public static async Task<ViewpathParseData?> ParseViewpath
 		(
 			Controller self,

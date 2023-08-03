@@ -21,7 +21,7 @@ namespace TcServer.Services
 	{
 		Task<int> RegisterAsync(RegisterDTO data);
 		
-		Task<AuthDTO?> ChangePwdAsync(ChangePwdDTO data);
+		Task<AuthDTO?> ChangePwdAsync(ChangePwdDTO data, bool force = false);
 		
 		Task<AuthDTO> LoginAsync(LoginDTO data);
 		
@@ -81,9 +81,15 @@ namespace TcServer.Services
 		
 		public async Task<AuthDTO> LoginAsync(LoginDTO data)
 		{
-			var user = await dbCtx.AccByEmailAsync(data.Email!);
-			if (user is null)
-				return new AuthDTO();
+			Account? user;
+			using (var scope = Transactions.DbAsyncScopeRC())
+			{
+				user = await dbCtx.AccByEmailAsync(data.Email!);
+				if (user is null)
+					return new AuthDTO();
+
+				scope.Complete();
+			}
 
 			bool chk = Password.Compare(data.Password!, user.Password!);
 			if (!chk)
@@ -98,18 +104,18 @@ namespace TcServer.Services
 			};
 		}
 		
-		public async Task<AuthDTO?> ChangePwdAsync(ChangePwdDTO data)
+		public async Task<AuthDTO?> ChangePwdAsync(ChangePwdDTO data, bool force)
 		{
 			AuthDTO? result = null;
+			Account? user;
 			
 			using (var scope = Transactions.DbAsyncScopeDefault())
 			{
-				var user = await dbCtx.AccByEmailAsync(data.Email!);
+				user = await dbCtx.AccByEmailAsync(data.Email!);
 				if (user is null)
 					return result;
-
-				bool chk = Password.Compare(data.PrevPassword!, user.Password!);
-				if (!chk)
+			
+				if (!force && !Password.Compare(data.PrevPassword!, user.Password!))
 					return result;
 				
 				user.Password = Password.Hash(data.NewPassword);
@@ -118,6 +124,8 @@ namespace TcServer.Services
 					accessToken = tokenSvc.NewAccessToken(user),
 					expiration = DateTime.UtcNow.AddDays(configSvc.JwtExpiryDays()).ToFileTime()
 				};
+				
+				await dbCtx.SaveChangesAsync();
 				scope.Complete();
 			}
 			return result;

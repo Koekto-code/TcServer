@@ -28,9 +28,6 @@ namespace TcServer.Storage.Core
 		// many : 1, optional, cascade deletion
 		public int? CompanyId { get; set; }
 		public Company? Company { get; set; }
-		
-		// 1 : many, not required
-		public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
 		// 1 : many, required for Photo
 		public ICollection<Photo> Photos { get; set; } = new List<Photo>();

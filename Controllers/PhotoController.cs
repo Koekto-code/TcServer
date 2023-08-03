@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Transactions;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
@@ -29,33 +30,43 @@ namespace TcServer.Controllers
 		public async Task<IActionResult> ById(int id)
 		{
 			string email = (string)HttpContext.Items["authEmail"]!;
-			var client = (await dbCtx.AccByEmailAsync(email))!;
+			Photo? photo;
 			
-			// @todo optimize checking before authorization
-			var photo = await dbCtx.Photos.FindAsync(id);
-			if (photo is null || photo.Base64 is null)
-				return BadRequest();
-			
-			bool authorized = false;
-			
-			if (client.Type == AccountType.Admin)
-				authorized = true;
-			else if (client.Type == AccountType.Company)
+			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				await dbCtx.Entry(client).Reference(c => c.Company).LoadAsync();
-				var dev = await dbCtx.Devices.FindAsync(photo.DeviceId);
-				if (dev is null)
-					return BadRequest();
-				if (client.Company is not null && dev.CompanyId == client.Company.Id)
+				var client = (Account)HttpContext.Items["authEntity"]!;
+				bool authorized = false;
+				
+				if (client.Type == AccountType.Admin)
 					authorized = true;
+				else if (client.Type == AccountType.Company)
+				{
+					var device = await dbCtx.Photos
+						.Where(p => p.Id == id)
+						.Select(p => p.Device)
+						.FirstOrDefaultAsync();
+					
+					if (device is null)
+						return BadRequest();
+					
+					await dbCtx.Entry(client).Reference(c => c.Company).LoadAsync();
+					if (client.Company is not null && device.CompanyId == client.Company.Id)
+						authorized = true;
+				}
+				
+				if (!authorized)
+					return Unauthorized();
+				
+				photo = await dbCtx.Photos.FindAsync(id);
+				if (photo?.Base64 is null)
+					return BadRequest();
+				
+				scope.Complete();
 			}
 			
-			if (!authorized)
-				return Unauthorized();
-			
 			byte[] img = Convert.FromBase64String(photo.Base64);
-			
 			string contentType = photo.Format == Photo.ImageFormat.PNG ? "image/png" : "image/jpeg";
+			
 			return File(img, contentType);
 		}
 	}

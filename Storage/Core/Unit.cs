@@ -16,7 +16,7 @@ namespace TcServer.Storage.Core
 		public int CompanyId { get; set; }
 		public Company Company { get; set; } = null!;
 
-		// 1 : many, not required
+		// 1 : many, required
 		public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
 		[Required]

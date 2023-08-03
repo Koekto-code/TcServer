@@ -1,6 +1,19 @@
 ﻿@{
   Layout = null;
+  
+  // todo localization
+  var weekDays = new string[]
+  {
+    "Пн",
+    "Вт",
+    "Ср",
+    "Чт",
+    "Пт",
+    "Сб",
+    "Вс"
+  };
 }
+
 @model TcServer.Views.WorkShifts.Index.ViewData
 @using TcServer.Views.WorkShifts
 @using TcServer.Utility
@@ -27,6 +40,11 @@
     <div class="plate">
       <div class="inset">
         <div class="flex-col">
+          <div class="flex-row" style="margin-bottom: 5px;">
+            <button id="workshift-add-btn">Добавить</button>
+            <button onclick="deleteSelected()" style="margin-left: 5px;">Удалить</button>
+            <button onclick="toMainPage()" class="rightpos">На главную</button>
+          </div>
           <div class="plate">
             <div class="inset">
               <div class="flex-col">
@@ -35,13 +53,10 @@
                     <thead>
                       <tr>
                         <th class="st-title-column">Должность</th>
-                        <th class="st-time-column">Пн</th>
-                        <th class="st-time-column">Вт</th>
-                        <th class="st-time-column">Ср</th>
-                        <th class="st-time-column">Чт</th>
-                        <th class="st-time-column">Пт</th>
-                        <th class="st-time-column">Сб</th>
-                        <th class="st-time-column">Вс</th>
+                        @foreach (string wd in weekDays)
+                        {
+                        <th class="st-time-column">@wd</th>
+                        }
                         <th class="st-time-column">Начало действия</th>
                         <th class="st-time-column">Конец действия</th>
                         <th class="st-actions-column">
@@ -70,8 +85,12 @@
                       <tbody>
                       @foreach (var entry in Model.WorkShifts)
                       {
+                        string jobTitle = entry.JobTitle;
+                        if (jobTitle.Length == 0)
+                          jobTitle = "(все)";
+                        
                         <tr>
-                          <td>@entry.JobTitle</td> 
+                          <td>@jobTitle</td> 
                           <td>
                             <div class="flex-col">
                               <p class="time-field">@DayTime.ToString(entry.MonArrive)</p>
@@ -130,29 +149,13 @@
               </div>
             </div>
           </div>
-          <div class="flex-row" style="margin-top: 5px;">
-            <button id="workshift-add-btn">Добавить</button>
-            <button onclick="deleteSelected()">Удалить</button>
-          </div>
         </div>
       </div>
     </div>
   </div>
-  @{
-    var weekDays = new string[]
-    {
-      "Пн",
-      "Вт",
-      "Ср",
-      "Чт",
-      "Пт",
-      "Сб",
-      "Вс"
-    };
-  }
   <div class="ctxmenu shade-menu plate" id="workshift-add-menu">
     <div class="flex-col">
-      <input type="text" class="text-input" id="jobtitle_ti" placeholder="Должность">
+      <input type="text" class="text-input" id="jobtitle_ti" placeholder="Должность (все)">
       <div style="width: fit-content;">
       @{ int wdId = 0; }
       @foreach (string wd in weekDays)

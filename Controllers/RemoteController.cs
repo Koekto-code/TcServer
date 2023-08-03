@@ -12,7 +12,9 @@ using TcServer.Services;
 using TcServer.Attributes;
 using TcServer.Core;
 using TcServer.Core.Remote;
+using TcServer.Core.Wappi;
 using TcServer.Utility;
+using TcServer.Views.Schedule.Index;
 
 namespace TcServer.Controllers
 {
@@ -20,14 +22,24 @@ namespace TcServer.Controllers
 	[Route("remote/")]
 	public class RemoteController : Controller
 	{
-		protected readonly IConfigService cfgSvc;
 		protected readonly CoreContext dbCtx;
+		protected readonly IConfigService cfgSvc;
+		protected readonly HttpClient waClient;
+
 		
-		public RemoteController(CoreContext dbctx, IConfigService cfgsvc)
+		public RemoteController(CoreContext dbctx, IConfigService cfgsvc, IHttpClientFactory cf)
 		{
 			dbCtx = dbctx;
 			cfgSvc = cfgsvc;
+			waClient = cf.CreateClient("WhatsAppNotify");
 		}
+		
+		protected enum RecordProp
+		{
+			None,
+			ArriveTime,
+			LeaveTime
+		};
 		
 		[HttpPost("callback")]
 		public async Task<IActionResult> RecognitionCallback()
@@ -44,6 +56,16 @@ namespace TcServer.Controllers
 			double retryDelay = Convert.ToDouble(cfgSvc.Access()["Misc:SqlQueryRetryDelay"]!);
 			int recInterval = Convert.ToInt32(cfgSvc.Access()["Misc:RecordInterval"]!);
 			int photoLimit = Convert.ToInt32(cfgSvc.Access()["Misc:EmployeePhotoLimit"]!);
+			string hostname = cfgSvc.Access()["Host:Address"]!;
+			
+			Employee? empl = null;
+			Photo? photo = null;
+			Company? comp;
+			string date;
+			Record viewrec;
+			DateTime timepoint;
+			RecordProp changed = RecordProp.None;
+			List<string?> recipients;
 			
 			using (var scope = new TransactionScope
 			(
@@ -62,22 +84,28 @@ namespace TcServer.Controllers
 				if (device.Company is null)
 					return BadRequest();
 				
-				var comp = device.Company;
+				comp = device.Company;
+				var conf = JsonSerializer.Deserialize<Company.Settings>(comp.JsonSettings);
+				if (conf is null)
+				{
+					Console.WriteLine("error: Couldn't deserialize Company.JsonSettings. Resetting to default\n");
+					comp.JsonSettings = "{}";
+					await dbCtx.SaveChangesAsync();
+					conf = new Company.Settings();
+				}	
 				
-				/*===-- calculate time and date --===*/
+				/*====   calculate time and date   ====*/
 				
 				if (!long.TryParse(rec.time, out long rectime))
 					return BadRequest();
 				
 				var unixOff = DateTimeOffset.FromUnixTimeMilliseconds(rectime);
-				var timepoint = unixOff.DateTime.AddHours(comp.GMTOffset);
+				timepoint = unixOff.DateTime.AddHours(conf.GMTOffset);
 				
-				string date = timepoint.ToString("yyyy-MM-dd");
-				Console.WriteLine($"INFO: Record date: {date}");
+				date = timepoint.ToString("yyyy-MM-dd");
 				
-				/*===-- check if recognized --===*/
+				/*====   check if recognized   ====*/
 				
-				Employee? empl = null;
 				int emplInnerId = 0;
 				
 				if (
@@ -91,12 +119,11 @@ namespace TcServer.Controllers
 							.FirstOrDefaultAsync(e => e.InnerCompId == emplInnerId);
 				}
 				
-				/*===-- photo part ---===*/
+				/*====   photo part   ====*/
 				
-				Photo? photo = null;
 				if (rec.base64 is null || rec.base64 == string.Empty)
 				{
-					Console.WriteLine($"ERROR: No base64 content in photo");
+					Console.WriteLine($"warning: No base64 content in photo. Please reset callbacks on {device.SerialNumber}");
 				}
 				else
 				{
@@ -118,52 +145,39 @@ namespace TcServer.Controllers
 				
 				if (photo is not null)
 				{
-					List<int> ph = null!;
 					if (empl is not null)
-					{
-						Console.WriteLine($"INFO: Photo belongs to {empl.Id}");
 						photo.EmployeeId = empl.Id;
-						
-						ph = await dbCtx.Photos
-							.Where(p => p.EmployeeId == empl.Id)
-							.Select(p => p.Id)
-							.ToListAsync();
-					}
-					else
-					{
-						Console.WriteLine($"INFO: Photo owner not found ({rec.personId}), saving as-is");
-						ph = await dbCtx.Photos
-							.Where(p => p.EmployeeId == null)
-							.Select(p => p.Id)
-							.ToListAsync();
-					}
+					
+					List<Photo> ph = await dbCtx.Photos
+						.Where(p => p.EmployeeId == photo.EmployeeId)
+						.ToListAsync();
+					
 					var rand = new Random();
 					while (ph.Count >= photoLimit)
 					{
 						int rem = rand.Next() % ph.Count;
-						var entity = await dbCtx.Photos.FindAsync(ph[rem]);
-						dbCtx.Photos.Remove(entity!);
+						dbCtx.Photos.Remove(ph[rem]);
 						ph.RemoveAt(rem);
 					}
 					await dbCtx.Photos.AddAsync(photo);
+					await dbCtx.SaveChangesAsync();
 				}
 				
 				if (empl is null)
 				{
-					Console.WriteLine($"WARN: Unrecognized person {rec.personId}");
+					Console.WriteLine($"warning: Unrecognized person {rec.personId}");
 					
 					// Mark request as accepted so that device can delete it from its local DB
 					return Ok("{\"result\": 1, \"success\": true}");
 				}
 				
-				/*===-- write the record finally --===*/
+				/*====   write the record finally   ====*/
 				
 				var record = await dbCtx.AtdRecords
 					.Where(r => r.EmployeeId == empl.Id)
 					.FirstOrDefaultAsync(r => r.Date == date);
 
 				int mins = timepoint.Hour * 60 + timepoint.Minute;
-				Console.WriteLine($"INFO: Callback time: {mins} minutes");
 
 				if (record is null)
 				{
@@ -172,29 +186,100 @@ namespace TcServer.Controllers
 						EmployeeId = empl.Id,
 						Date = date
 					};
-					record.TimeArrive = mins;
 					await dbCtx.AtdRecords.AddAsync(record);
 				}
-				else
+
+				if (record.TimeArrive is null)
 				{
-					// sorting
-					if (record.TimeArrive is null)
-						record.TimeArrive = mins;
-					else if (record.TimeArrive > mins)
-						record.TimeArrive = mins;
-					else if (record.TimeLeave is null)
-						record.TimeLeave = mins;
-					else if (record.TimeLeave < mins)
-						record.TimeLeave = mins;
-					
-					if (record.TimeLeave - record.TimeArrive < recInterval)
-						record.TimeLeave = null;
+					changed = RecordProp.ArriveTime;
+					record.TimeArrive = mins;
 				}
-				
+				else if (record.TimeLeave is null)
+				{
+					if (mins - record.TimeArrive >= recInterval)
+					{
+						changed = RecordProp.LeaveTime;
+						record.TimeLeave = mins;
+					}
+				}
+				else if (mins - record.TimeLeave >= recInterval)
+				{
+					// rewrite the record
+					changed = RecordProp.ArriveTime;
+					record.TimeArrive = mins;
+					record.TimeLeave = null;
+				}
+
 				await dbCtx.SaveChangesAsync();
+				
+				// =========================
+				
+				var rules = await dbCtx.WorkShifts
+					.Where(w => w.CompanyId == empl.CompanyId)
+					.Where(w => w.JobTitle == empl.JobTitle)
+					.ToListAsync();
+				
+				var rulesPublic = await dbCtx.WorkShifts
+					.Where(w => w.CompanyId == empl.CompanyId)
+					.Where(w => w.JobTitle == string.Empty)
+					.ToListAsync();
+				
+				recipients = await dbCtx.Employees
+					.Where(e => e.CompanyId == empl.CompanyId)
+					.Where(e => e.Phone != null)
+					.Where(e => e.Notify == Employee.NotifyMode.EnableWhatsApp)
+					.Select(e => e.Phone)
+					.ToListAsync();
+				
+				viewrec = new(record.TimeArrive, record.TimeLeave, date, rules, rulesPublic);
 				scope.Complete();
-				return Ok("{\"result\": 1, \"success\": true}");;
 			}
+			
+			/*====   send notification via WhatsApp   ====*/
+			
+			if (changed != RecordProp.None)
+			{
+				string wappiSession = cfgSvc.Access()["WAPPI:Profile"]!;
+				string time = timepoint.ToString("HH:mm");
+				string state = changed == RecordProp.ArriveTime ? "Вход" : "Выход";
+				string datefmt = timepoint.ToString("dd.MM.yyyy");
+				string comm = string.Empty;
+				
+				string msg = $"*{comp.Name}*\n{empl.Name}\n{state} в {time}, {datefmt}";
+				
+				foreach (string? phone in recipients)
+				{
+					dynamic? resp;
+					if (photo?.Base64 is not null)
+					{
+						resp = await ChatMethods.SendImage
+						(
+							waClient,
+							wappiSession,
+							new()
+							{
+								recipient = phone!,
+								caption = msg,
+								b64_file = photo.Base64
+							}
+						);
+					}
+					else
+					{
+						resp = await ChatMethods.SendMessage
+						(
+							waClient,
+							wappiSession,
+							new()
+							{
+								recipient = phone!,
+								body = msg
+							}
+						);
+					}
+				}
+			}
+			return Ok("{\"result\": 1, \"success\": true}");;
 		}
 	}
 }

@@ -72,6 +72,11 @@ namespace TcServer.Controllers
 
 			var shifts = new Dictionary<string, List<WorkShift>>();
 			
+			// prepare shared rules
+			shifts[string.Empty] = await shiftsRaw
+				.Where(s => s.JobTitle == string.Empty)
+				.ToListAsync();
+			
 			foreach (var emp in empls)
 			{
 				List<WorkShift> ruleset;
@@ -79,7 +84,6 @@ namespace TcServer.Controllers
 					ruleset = shifts[emp.JobTitle];
 				else
 				{
-					// absence of WorkShift rules for given job title is similar to one with default constructor
 					ruleset = await shiftsRaw.Where(s => s.JobTitle == emp.JobTitle).ToListAsync();
 					shifts[emp.JobTitle] = ruleset;
 				}
@@ -91,7 +95,8 @@ namespace TcServer.Controllers
 				(
 					record?.TimeArrive,
 					record?.TimeLeave,
-					date, ruleset
+					date, ruleset,
+					shifts[string.Empty]
 				);
 			}
 			return records;
@@ -137,30 +142,66 @@ namespace TcServer.Controllers
 				});
 			}
 			
-			var pdata = await Utility.ParseViewpath(this, compname, unitname, client);
-			if (pdata is null)
-				return BadRequest();
+			Views.Schedule.Index.ViewData viewdata;
 			
-			Views.Schedule.Index.ViewData viewdata = new()
+			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				AccType = client.Type,
-				Company = pdata.Company,
-				Companies = pdata.Companies ?? new(),
-				Units = pdata.Units ?? new(),
-				Active = pdata.Active,
-				SelectedDate = viewdate ?? DateTime.Today.ToString("yyyy-MM-dd")
-			};
-			
-			if (viewdata.Active is null)
-				return View(viewdata);
-			
-			viewdata.Records = await CollectRecords(viewdata.Active, viewdate);
-			
-			// for assigning devices to new employees
-			viewdata.AvailableDevices = await dbCtx.Devices
-				.Where(d => d.CompanyId == pdata.Company!.Id)
-				.ToListAsync();
-			
+				var pdata = await Utility.ParseViewpath(this, compname, unitname, client);
+				if (pdata is null)
+					return BadRequest();
+				
+				string selDate = viewdate ?? DateTime.Now.AddHours (
+					pdata.Company is not null
+					? JsonSerializer.Deserialize<Company.Settings>
+						(pdata.Company.JsonSettings)?.GMTOffset ?? 0.0
+					: 0.0
+				).ToString("yyyy-MM-dd");
+				
+				int emplsPt = 0, emplsT = 0, emplsP = 0;
+				
+				if (pdata.Company is not null)
+				{
+					emplsT = await dbCtx.Companies
+						.Where(c => c.Id == pdata.Company.Id)
+						.Select(c => c.Employees.Count())
+						.FirstOrDefaultAsync();
+					emplsPt = await dbCtx.Companies
+						.Where(c => c.Id == pdata.Company.Id)
+						.Select(c => c.Employees.Count(e => e.Phone != null))
+						.FirstOrDefaultAsync();
+				}
+				if (pdata.Active is not null)
+				{
+					emplsP = await dbCtx.Units
+						.Where(u => u.Id == pdata.Active.Id)
+						.Select(u => u.Employees.Count(e => e.Phone != null))
+						.FirstOrDefaultAsync();
+				}
+					
+				viewdata = new()
+				{
+					AccType = client.Type,
+					Company = pdata.Company,
+					Companies = pdata.Companies ?? new(),
+					Units = pdata.Units ?? new(),
+					Active = pdata.Active,
+					SelectedDate = selDate,
+					EmplsTotal = emplsT,
+					EmplsWithPhones = emplsP,
+					EmplsWithPhonesTotal = emplsPt
+				};
+				
+				if (viewdata.Active is not null)
+				{
+					viewdata.Records = await CollectRecords(viewdata.Active, viewdate);
+					
+					// for assigning devices to new employees
+					viewdata.AvailableDevices = await dbCtx.Devices
+						.Where(d => d.CompanyId == pdata.Company!.Id)
+						.ToListAsync();
+				}
+				scope.Complete();
+			}
 			return View(viewdata);
 		}
 		
@@ -220,7 +261,7 @@ namespace TcServer.Controllers
 				
 				foreach (var pair in allUnitsRec)
 				{
-					int k = pair.Key.UnitId!.Value;
+					int k = pair.Key.UnitId;
 					if (!pagedata.ContainsKey(k))
 						pagedata[k] = new();
 					pagedata[k][pair.Key] = pair.Value;

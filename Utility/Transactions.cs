@@ -15,5 +15,17 @@ namespace TcServer.Utility
 				TransactionScopeAsyncFlowOption.Enabled
 			);
 		}
+		
+		public static TransactionScope DbAsyncScopeRC()
+		{
+			return new TransactionScope
+			(
+				TransactionScopeOption.Required,
+				new TransactionOptions {
+					IsolationLevel = IsolationLevel.ReadCommitted
+				},
+				TransactionScopeAsyncFlowOption.Enabled
+			);
+		}
 	}
 }

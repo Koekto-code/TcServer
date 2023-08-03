@@ -1,6 +1,8 @@
 ﻿@model TcServer.Views.Company.Index.ViewData
 @using TcServer.Views.Company.Index
+@using TcServer.Storage.Core
 @using System.Text.Encodings.Web
+@using System.Text.Json
 @{
   Layout = null;
   
@@ -8,6 +10,11 @@
     int hrs = (int)(off);
     int mins = (int)((off - hrs) * 60);
     return "GMT" + hrs.ToString("+#00;-#00") + ":" + mins.ToString("#00;#00");
+  }
+  
+  double getGMTOffset(Company comp) {
+    var conf = JsonSerializer.Deserialize<Company.Settings>(comp.JsonSettings);
+    return conf?.GMTOffset ?? 0.0;
   }
 }
 
@@ -45,7 +52,7 @@
                   <div class="flex-row" id="settings-left">
                     <label id="tzlab1">Часовой пояс: </label>
                     <div class="dropdown" dd-show="" id="dd1">
-                      <div class="dd-title" dd-value="" dd-parent="dd1" id="dd1_h">@offToString(Model.Company.GMTOffset)</div>
+                      <div class="dd-title" dd-value="" dd-parent="dd1" id="dd1_h">@offToString(getGMTOffset(Model.Company))</div>
                       <div class="dd-list" id="dd1_l">
                       @for (int i = -24; i <= 24; ++i)
                       {

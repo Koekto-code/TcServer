@@ -3,6 +3,8 @@
 }
 @model TcServer.Views.Employee.Index.ViewData
 @using TcServer.Views.Employee.Index
+@using TcServer.Storage.Core
+@using System.Text.Encodings.Web
 
 <!DOCTYPE html>
 <html lang="en">
@@ -20,154 +22,189 @@
   <link rel="stylesheet" href="~/css/employee.css">
   <title>Сотрудник</title>
 </head>
-<body style="margin: 0; height: 100vh;">
-  <div class="main-cont">
-    <div class="plate">
-      <div class="inset">
-        <div class="flex-col">
-          <div class="flex-row" style="margin-bottom: 5px;">
-            <button onclick="window.location.reload()">Обновить</button>
-            <div class="centhdr">
-              <h2>@Model.Employee.Name</h2>
+<body>
+  <div class="flex-row" id="main-hdr">
+    <a href='/schedule'><b>TcServer</b></a>
+    <a href='/devices?compname=@Model.Company.Name'>Терминалы</a>
+    <a href='/workshifts?compname=@Model.Company.Name'>Рабочие смены</a>
+    <a href='/company?compname=@Model.Company.Name'>Организация</a>
+  </div>
+  <div class="plate" id="main-c">
+    <div class="inset97 flex-row">
+      <div class="list1">
+        <div style="padding: 5px;">
+          <div class="flex-row" style="margin-bottom: 10px;">
+            <div class="flex-row">
+              <div class="chdr-ovl">
+                <h3 class="chdr">Сотрудник @Model.Employee.InnerCompId</h3>
+              </div>
             </div>
-            <button class="rightpos" onclick="window.location.href='/schedule'">На главную</button>
+            <button id="settings-save-btn" onclick="saveChanges()" class="btn-inactive rightpos">Сохранить</button>
           </div>
-          <div class="plate">
-            <div class="inset97 flex-row">
-              <div class="list1">
-                <div style="padding: 5px;">
-                  <table id="tab1">
-                    <tbody>
-                      <tr>
-                        <td class="fc">Должность</td>
-                        <td class="sc">@Model.Employee.JobTitle</td>
-                      </tr>
-                      <tr>
-                        <td class="fc">Место работы</td>
-                        <td class="sc">@Model.Company.Name</td>
-                      </tr>
-                      <tr>
-                        <td class="fc">Фотографии</td>
-                        <td class="sc">@Model.Employee.Photos.Count</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  @{ var ophotos = Model.OwnPhotos; }
-                  @if (ophotos.Count > 0)
-                  {
-                  <div class="chdr-ovl">
-                    <h3 class="chdr" style="margin-top: 15px;">Распознанные фотографии</h3>
-                  </div>
-                  <table>
-                    <tbody>
-                      @for (int row = 0; row != ophotos.Count / 3; ++row)
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(ophotos[row * 3].Id)" class="imgsel">
-                        </td>
-                        <td class="tc">
-                          <img src="/img/id?id=@(ophotos[row * 3 + 1].Id)" class="imgsel">
-                        </td>
-                        <td class="ec">
-                          <img src="/img/id?id=@(ophotos[row * 3 + 2].Id)" class="imgsel">
-                        </td>
-                      </tr>
-                      }
-                      @if ((ophotos.Count % 3) == 1)
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(ophotos[ophotos.Count - 1].Id)" class="imgsel">
-                        </td>
-                        <td class="tc"></td>
-                        <td class="ec"></td>
-                      </tr>
-                      }
-                      else if ((ophotos.Count % 3 == 2))
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(ophotos[ophotos.Count - 2].Id)" class="imgsel">
-                        </td>
-                        <td class="tc">
-                          <img src="/img/id?id=@(ophotos[ophotos.Count - 1].Id)" class="imgsel">
-                        </td>
-                        <td class="ec"></td>
-                      </tr>
-                      }
-                    </tbody>
-                  </table>
-                  }
+          <div class="flex-col">
+            <div class="flex-row">
+              <div class="fc">Имя</div>
+              <div class="sc">
+                @Model.Employee.Name
+                @* <input type="text" id="empl-name" class="inline-text-input" value='@Model.Employee.Name' oninput="highlightSaveBtn()" autocomplete="off"> *@
+              </div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Должность</div>
+              <div class="sc">
+                <input type="text" id="empl-jobtitle" class="inline-text-input" value='@(Model.Employee.JobTitle ?? "")' oninput="highlightSaveBtn()" autocomplete="off">
+              </div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Домашний адрес</div>
+              <div class="sc">
+                <input type="text" id="empl-addr" class="inline-text-input" value='@(Model.Employee.HomeAddress ?? "")' oninput="highlightSaveBtn()" autocomplete="off">
+              </div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Телефон</div>
+              <div class="sc">
+                <input type="text" id="empl-phone" class="inline-text-input" value='@(Model.Employee.Phone ?? "")' oninput="highlightSaveBtn()" autocomplete="off">
+              </div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Уведомления WhatsApp</div>
+              <div class="sc">
+                <div class="checkbox-overlay middlepos">
+                  <input type="checkbox" id="empl-notify" onclick="toggleNotifications()">
                 </div>
               </div>
-              @{ var sphotos = Model.StrangerPhotos; }
-              @if (sphotos.Count > 0)
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Организация</div>
+              <div class="sc">@Model.Company.Name</div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
+              <div class="fc">Фотографии</div>
+              <div class="sc">@Model.OwnPhotos.Count</div>
+            </div>
+          </div>
+          @{ var ophotos = Model.OwnPhotos; }
+          @if (ophotos.Count > 0)
+          {
+          <div class="chdr-ovl">
+            <h3 class="chdr" style="margin-top: 15px;">Распознанные фотографии</h3>
+          </div>
+          <table>
+            <tbody>
+              @for (int row = 0; row != ophotos.Count / 3; ++row)
               {
-              <div id="ftab1cc" class="plate stpad list1 expandev" style="margin-left: 5px;">
-                <div class="flex-row">
-                  <div class="ptrhover" id="fold1">
-                    <div class="chdr-ovl">
-                      <h3 class="chdr">Нераспознанные фотографии</h3>
-                    </div>
-                  </div>
-                  <button class="rightpos" onclick="addSelectedPhotos()">Добавить фото</button>
-                </div>
-                <div id="ftab1c" class="openev">
-                  <table id="ftab1" class="hideev">
-                    <tbody>
-                      @for (int row = 0; row != sphotos.Count / 3; ++row)
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(sphotos[row * 3].Id)" data-value="@(sphotos[row * 3].Id)" class="imgsel">
-                        </td>
-                        <td class="tc">
-                          <img src="/img/id?id=@(sphotos[row * 3 + 1].Id)" data-value="@(sphotos[row * 3 + 1].Id)" class="imgsel">
-                        </td>
-                        <td class="ec">
-                          <img src="/img/id?id=@(sphotos[row * 3 + 2].Id)" data-value="@(sphotos[row * 3 + 2].Id)" class="imgsel">
-                        </td>
-                      </tr>
-                      }
-                      @if ((sphotos.Count % 3) == 1)
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(sphotos[sphotos.Count - 1].Id)" data-value="@(sphotos[sphotos.Count - 1].Id)" class="imgsel">
-                        </td>
-                        <td class="tc"></td>
-                        <td class="ec"></td>
-                      </tr>
-                      }
-                      else if ((sphotos.Count % 3 == 2))
-                      {
-                      <tr>
-                        <td class="tc">
-                          <img src="/img/id?id=@(sphotos[sphotos.Count - 2].Id)" data-value="@(sphotos[sphotos.Count - 2].Id)" class="imgsel">
-                        </td>
-                        <td class="tc">
-                          <img src="/img/id?id=@(sphotos[sphotos.Count - 1].Id)" data-value="@(sphotos[sphotos.Count - 1].Id)" class="imgsel">
-                        </td>
-                        <td class="ec"></td>
-                      </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(ophotos[row * 3])" class="imgsel">
+                </td>
+                <td class="tc">
+                  <img src="/img/id?id=@(ophotos[row * 3 + 1])" class="imgsel">
+                </td>
+                <td class="ec">
+                  <img src="/img/id?id=@(ophotos[row * 3 + 2])" class="imgsel">
+                </td>
+              </tr>
               }
-            </div>
-          </div>
+              @if ((ophotos.Count % 3) == 1)
+              {
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(ophotos[ophotos.Count - 1])" class="imgsel">
+                </td>
+                <td class="tc"></td>
+                <td class="ec"></td>
+              </tr>
+              }
+              else if ((ophotos.Count % 3 == 2))
+              {
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(ophotos[ophotos.Count - 2])" class="imgsel">
+                </td>
+                <td class="tc">
+                  <img src="/img/id?id=@(ophotos[ophotos.Count - 1])" class="imgsel">
+                </td>
+                <td class="ec"></td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          }
         </div>
       </div>
+      @{ var sphotos = Model.StrangerPhotos; }
+      @if (sphotos.Count > 0)
+      {
+      <div id="ftab1cc" class="plate stpad list1 expandev" style="margin-left: 5px;">
+        <div class="flex-row">
+          <div class="ptrhover" id="fold1">
+            <div class="chdr-ovl">
+              <h3 class="chdr">Нераспознанные фотографии</h3>
+            </div>
+          </div>
+          <button class="rightpos" onclick="addSelectedPhotos()">Добавить фото</button>
+        </div>
+        <div id="ftab1c" class="openev">
+          <table id="ftab1" class="hideev">
+            <tbody>
+              @for (int row = 0; row != sphotos.Count / 3; ++row)
+              {
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(sphotos[row * 3])" data-value="@(sphotos[row * 3])" class="imgsel">
+                </td>
+                <td class="tc">
+                  <img src="/img/id?id=@(sphotos[row * 3 + 1])" data-value="@(sphotos[row * 3 + 1])" class="imgsel">
+                </td>
+                <td class="ec">
+                  <img src="/img/id?id=@(sphotos[row * 3 + 2])" data-value="@(sphotos[row * 3 + 2])" class="imgsel">
+                </td>
+              </tr>
+              }
+              @if ((sphotos.Count % 3) == 1)
+              {
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(sphotos[sphotos.Count - 1])" data-value="@(sphotos[sphotos.Count - 1])" class="imgsel">
+                </td>
+                <td class="tc"></td>
+                <td class="ec"></td>
+              </tr>
+              }
+              else if ((sphotos.Count % 3 == 2))
+              {
+              <tr>
+                <td class="tc">
+                  <img src="/img/id?id=@(sphotos[sphotos.Count - 2])" data-value="@(sphotos[sphotos.Count - 2])" class="imgsel">
+                </td>
+                <td class="tc">
+                  <img src="/img/id?id=@(sphotos[sphotos.Count - 1])" data-value="@(sphotos[sphotos.Count - 1])" class="imgsel">
+                </td>
+                <td class="ec"></td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      }
     </div>
   </div>
 </body>
 
 <script>
-  let companyId = "@Model.Company.Id";
-  let employeeId = "@Model.Employee.InnerCompId";
+  document.getElementById("empl-notify").checked = @(Model.Employee.Notify == Employee.NotifyMode.EnableWhatsApp ? "true" : "false");
+  const companyId = @Model.Company.Id;
+  const employeeId = @Model.Employee.InnerCompId;
+  const emplId = @Model.Employee.Id;
+  const compName = decodeURIComponent('@(JavaScriptEncoder.Default.Encode(Model.Company.Name))');
 </script>
 
 <script src="~/js/dropdown.js"></script>

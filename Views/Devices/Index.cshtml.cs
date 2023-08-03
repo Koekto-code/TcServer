@@ -15,7 +15,7 @@ namespace TcServer.Views.Devices.Index
 	{
 		public List<Device> Devices { get; set; } = new();
 		
-		public Dictionary<string, bool> DevStat { get; set; } = new();
+		public IReadOnlyDictionary<string, bool> DevStat { get; set; } = null!;
 		
 		public string CompName { get; set; } = null!;
 	}

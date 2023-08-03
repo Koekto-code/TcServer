@@ -1,8 +1,10 @@
 bin/
 obj/
+Migrations/
 build*/
 .vscode/
 .junk/
 *.bat
 *.cmd
 *.sh
+appsettings.json

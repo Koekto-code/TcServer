@@ -94,7 +94,7 @@ function deleteSelectedDevices()
 	});
 }
 
-function resetSelectedDevicesCall()
+function resetSelectedDevicesCallback()
 {
 	const checkboxes = Array.from(document.getElementsByName('dev-select'))
 	const values = []

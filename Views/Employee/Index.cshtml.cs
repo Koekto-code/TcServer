@@ -17,8 +17,8 @@ namespace TcServer.Views.Employee.Index
 		
 		public Storage.Core.Employee Employee { get; set; } = null!;
 		
-		public List<Photo> OwnPhotos { get; set; } = new();
+		public List<int> OwnPhotos { get; set; } = new();
 		
-		public List<Photo> StrangerPhotos { get; set; } = new();
+		public List<int> StrangerPhotos { get; set; } = new();
 	}
 }

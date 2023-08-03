@@ -10,9 +10,10 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="~/css/auth.css">
-  <title>TIME-MAN</title>
+  <title>TcServer</title>
 </head>
 <body>
+  <canvas class="background" id="bg-canvas"></canvas>
   <section>
     <div class="form-box">
       <div class="form-value">
@@ -36,8 +37,31 @@
       </div>
     </div>
   </section>
-  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <style>
+    #bg-canvas {
+      position: absolute;
+      z-index: 0;
+    }
+  </style>
 </body>
+
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/particlesjs/2.2.3/particles.min.js"></script>
+
+<script>
+  window.onload = function() {
+    Particles.init({
+        selector: '.background',
+        maxParticles: 50,
+        connectParticles: 'true',
+        speed: 1,
+        minDistance: 140,
+        sizeVariations: 8,
+        color: '#87c3fa',
+    });
+  }
+</script>
 
 </html>
