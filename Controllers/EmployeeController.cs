@@ -20,10 +20,12 @@ namespace TcServer.Controllers
 	public class EmployeeController: Controller
 	{
 		protected readonly CoreContext dbCtx;
+		protected readonly IConfiguration config;
 		
-		public EmployeeController(CoreContext dbctx)
+		public EmployeeController(CoreContext dbctx, IConfiguration conf)
 		{
 			dbCtx = dbctx;
+			config = conf;
 		}
 		
 		[CookieAuthorize]
@@ -49,10 +51,14 @@ namespace TcServer.Controllers
 				.Select(p => p.Id)
 				.ToListAsync();
 			
-			var stPhotos = await dbCtx.Photos
+			bool alw;
+			if (!bool.TryParse(config["Misc:AllowUnrecognizedPhotos"], out alw))
+				alw = true;
+			
+			var stPhotos = alw ? await dbCtx.Photos
 				.Where(p => p.EmployeeId == null)
 				.Select(p => p.Id)
-				.ToListAsync();
+				.ToListAsync() : new List<int>();
 
 			var viewdata = new Views.Employee.Index.ViewData
 			{

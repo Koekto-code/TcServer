@@ -65,7 +65,7 @@ namespace TcServer.Controllers
 			Record viewrec;
 			DateTime timepoint;
 			RecordProp changed = RecordProp.None;
-			List<string?> recipients;
+			List<string?> recipients = new();
 			
 			using (var scope = new TransactionScope
 			(
@@ -224,12 +224,15 @@ namespace TcServer.Controllers
 					.Where(w => w.JobTitle == string.Empty)
 					.ToListAsync();
 				
-				recipients = await dbCtx.Employees
-					.Where(e => e.CompanyId == empl.CompanyId)
-					.Where(e => e.Phone != null)
-					.Where(e => e.Notify == Employee.NotifyMode.EnableWhatsApp)
-					.Select(e => e.Phone)
-					.ToListAsync();
+				// recipients = await dbCtx.Employees
+				// 	.Where(e => e.CompanyId == empl.CompanyId)
+				// 	.Where(e => e.Phone != null)
+				// 	.Where(e => e.Notify == Employee.NotifyMode.EnableWhatsApp)
+				// 	.Select(e => e.Phone)
+				// 	.ToListAsync();
+				
+				if (empl.Phone is not null && empl.Notify == Employee.NotifyMode.EnableWhatsApp)
+					recipients = new() { empl.Phone };
 				
 				viewrec = new(record.TimeArrive, record.TimeLeave, date, rules, rulesPublic);
 				scope.Complete();

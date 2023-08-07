@@ -19,15 +19,8 @@ label {
 
 .plate {
     background-color: #fff;
-    border: solid;
-    border-right-width: 1px;
-    border-right-color: #eee;
-    border-top-width: 1px;
-    border-top-color: #eee;
-    border-left-width: 2px;
-    border-left-color: #ccc;
-    border-bottom-width: 2px;
-    border-bottom-color: #ccc;
+    border: solid 1px #ccc;
+    box-shadow: 0px 0px 5px #aaa;
     border-radius: 4px;
     transition: 200ms;
     margin-bottom: 0%;

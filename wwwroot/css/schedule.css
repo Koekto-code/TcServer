@@ -22,6 +22,23 @@
     height: calc(100% - 27px);
 }
 
+#empl-sel-addr-c {
+    width: 50%;
+    padding-right: 5px;
+}   
+#empl-sel-addr {
+    width: 100%;
+    margin: 0;
+}
+#empl-sel-phone-c {
+    width: 50%;
+    padding-left: 5px;
+}
+#empl-sel-phone {
+    width: 100%;
+    margin: 0;
+}
+
 .empl-name-field {
     font-size: 14px;
     margin: 2px;
@@ -106,11 +123,11 @@ label[for="ddex2"] {
 }
 
 .w70-ti {
-    width: 70%;
+    width: 70% !important;
 }
 
 .w70-ti:focus {
-    width: 95%;
+    width: 95% !important;
 }
 
 .dropdown {
