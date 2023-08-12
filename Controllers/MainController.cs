@@ -34,11 +34,11 @@ namespace TcServer.Controllers
 
 		[HttpGet("login")]
 		[CookieAuthorizeOptional]
-		public IActionResult Login()
+		public IActionResult Login(bool prev_failed = false)
 		{
 			if (HttpContext.Items["authEntity"] is not null)
 				return RedirectToAction("Index", "Schedule");
-			return View();
+			return View(prev_failed);
 		}
 
 		[HttpGet("logout")]
@@ -88,7 +88,7 @@ namespace TcServer.Controllers
 
 			var result = await accountSvc.LoginAsync(dto);
 			if (result.expiration == -1)
-				return BadRequest();
+				return RedirectToAction("Login", new { prev_failed = true });
 
 			var cookieOpts = new CookieOptions()
 			{

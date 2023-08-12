@@ -288,28 +288,31 @@ function pwdValidation(pass, pass1, btn)
 	const submit = document.getElementById('pwd-reset-submit-btn');
 	const form = document.getElementById('admin-pwd-reset-form');
 	
-	pwdValidation(pass, pass1, submit);
-	
-	form.addEventListener('submit', (ev) => {
-		ev.preventDefault();
+	if (pass && pass1 && submit && form)
+	{
+		pwdValidation(pass, pass1, submit);
+		
+		form.addEventListener('submit', (ev) => {
+			ev.preventDefault();
 
-		var formData = new FormData(form);
+			var formData = new FormData(form);
 
-		var request = new Request('/resetpwd', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded'
-			},
-			body: new URLSearchParams(formData)
+			var request = new Request('/resetpwd', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams(formData)
+			});
+
+			fetch(request)
+			.then((response) => {
+				if (!response.ok)
+					throw new Error(`Fetch error: ${response.status}`);
+				window.location.reload();
+			})
 		});
-
-		fetch(request)
-		.then((response) => {
-			if (!response.ok)
-				throw new Error(`Fetch error: ${response.status}`);
-			window.location.reload();
-		})
-	});
+	}
 }
 
 // Unit creating logic

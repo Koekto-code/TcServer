@@ -1,6 +1,7 @@
 ﻿@{
   Layout = null;
 }
+@model bool
 
 <!DOCTYPE html>
 <html lang="en">
@@ -10,14 +11,18 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="~/css/auth.css">
-  <title>TcServer</title>
+  <title>Вход</title>
 </head>
 <body>
   <canvas class="background" id="bg-canvas"></canvas>
   <section>
     <div class="form-box">
+      @if (Model)
+      {
+      <p id="fail-notify">Неверный логин или пароль</p>
+      }
       <div class="form-value">
-        <form method="post" asp-controller="Main" asp-action="LoginPost">
+        <form method="post" asp-controller="Main" asp-action="LoginPost">          
           <h2>Вход</h2>
           <div class="inputbox">
             <ion-icon name="mail-outline"></ion-icon>
@@ -29,9 +34,9 @@
             <input type="password" name="password" id="pass1" required>
             <label for="">Пароль</label>
           </div>
-          <div class="forget">
+          @* <div class="forget">
             <a href="#">Забыли пароль?</a>
-          </div>
+          </div> *@
           <button>Войти</button>
         </form>
       </div>
@@ -41,6 +46,20 @@
     #bg-canvas {
       position: absolute;
       z-index: 0;
+    }
+    #fail-notify {
+      display: block;
+      color: #d5020c;
+      background-color: #ffffffaa;
+      border-radius: 5px;
+      box-shadow: 0px 0px 5px #ffffffff;
+      width: fit-content;
+      padding-left: 5px;
+      padding-right: 5px;
+      margin-bottom: 30px;
+      max-height: 20px;
+      transition: 200ms;
+      overflow: hidden;
     }
   </style>
 </body>
@@ -62,6 +81,12 @@
         color: '#87c3fa',
     });
   }
+  const notify = document.getElementById('fail-notify');
+  let lstr = () => {
+    notify.style.maxHeight = "0px";
+  }
+  document.getElementById('email1').addEventListener('input', lstr);
+  document.getElementById('pass1').addEventListener('input', lstr);
 </script>
 
 </html>

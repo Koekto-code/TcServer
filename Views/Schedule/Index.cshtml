@@ -44,14 +44,16 @@
                   <div class="flex-row">
                     <!-- Unit selector -->
                     <div class="dropdown main-dd" dd-show="" id="dd1">
-                      <div class="dd-title" dd-parent="dd1" id="dd1_h">@(Model.Active is null ? "Отдел" : Model.Active.Name)</div>
+                      <div class="dd-title" dd-parent="dd1" id="dd1_h">@(Model.Active is null ? "(Все отделы)" : Model.Active.Name)</div>
                       <div class="dd-list">
-                      @for (int i = 0; i != Model.Units.Count; ++i)
-                      {
-                        if (i != 0) {<div class="dd-sep"></div>}
-                        <input id="dd1_i@(i)" class="dd-item" type="radio" onclick="changeUnit('@Model.Units[i]')" />
-                        <label for="dd1_i@(i)" id="dd1_l@(i)" class="dd-label" dd-header="dd1_h">@Model.Units[i]</label>
-                      }
+                        <input id="dd1_i0" class="dd-item" type="radio" onclick="changeUnit('__all__')" />
+                        <label for="dd1_i0" id="dd1_l0" class="dd-label" dd-header="dd1_h">(Все отделы)</label>
+                        @for (int i = 0; i != Model.Units.Count; ++i)
+                        {
+                        <div class="dd-sep"></div>
+                        <input id="dd1_i@(i + 1)" class="dd-item" type="radio" onclick="changeUnit('@Model.Units[i]')" />
+                        <label for="dd1_i@(i + 1)" id="dd1_l@(i + 1)" class="dd-label" dd-header="dd1_h">@Model.Units[i]</label>
+                        }
                       </div>
                     </div>
                     @if (isAdmin)
@@ -60,12 +62,12 @@
                     <div class="dropdown rightpos main-dd" dd-show="" id="dd0">
                       <div class="dd-title" dd-parent="dd0" id="dd0_h">@(Model.Company is null ? "Организация" : Model.Company.Name)</div>
                       <div class="dd-list">
-                      @for (int i = 0; i != Model.Companies.Count; ++i)
-                      {
+                        @for (int i = 0; i != Model.Companies.Count; ++i)
+                        {
                         if (i != 0) {<div class="dd-sep"></div>}
                         <input id="dd0_i@(i)" class="dd-item" type="radio" onclick="changeComp('@Model.Companies[i]')" />
                         <label for="dd0_i@(i)" class="dd-label" dd-header="dd0_h">@Model.Companies[i]</label>
-                      }
+                        }
                       </div>
                     </div>
                     }
@@ -139,7 +141,7 @@
           </div>
         </div>
       </div>
-      @if (Model.SelectedDate is not null && Model.Active is not null)
+      @if (Model.SelectedDate is not null && Model.Company is not null)
       {
       <div class="flex-col" style="max-width: 65%; margin-left: 5px;">
         <div class="plate flex-normal">

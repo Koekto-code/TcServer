@@ -62,7 +62,6 @@ namespace TcServer.Controllers
 			Photo? photo = null;
 			Company? comp;
 			string date;
-			Record viewrec;
 			DateTime timepoint;
 			RecordProp changed = RecordProp.None;
 			List<string?> recipients = new();
@@ -214,16 +213,6 @@ namespace TcServer.Controllers
 				
 				// =========================
 				
-				var rules = await dbCtx.WorkShifts
-					.Where(w => w.CompanyId == empl.CompanyId)
-					.Where(w => w.JobTitle == empl.JobTitle)
-					.ToListAsync();
-				
-				var rulesPublic = await dbCtx.WorkShifts
-					.Where(w => w.CompanyId == empl.CompanyId)
-					.Where(w => w.JobTitle == string.Empty)
-					.ToListAsync();
-				
 				// recipients = await dbCtx.Employees
 				// 	.Where(e => e.CompanyId == empl.CompanyId)
 				// 	.Where(e => e.Phone != null)
@@ -234,7 +223,6 @@ namespace TcServer.Controllers
 				if (empl.Phone is not null && empl.Notify == Employee.NotifyMode.EnableWhatsApp)
 					recipients = new() { empl.Phone };
 				
-				viewrec = new(record.TimeArrive, record.TimeLeave, date, rules, rulesPublic);
 				scope.Complete();
 			}
 			

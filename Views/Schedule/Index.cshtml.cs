@@ -29,12 +29,15 @@ namespace TcServer.Views.Schedule.Index
 
 		public State LeaveState = State.Normal;
 
-		public Record(int? timeArrive, int? timeLeave, string date, List<WorkShift> rules, List<WorkShift>? lpRules = null)
+		public Record(int? timeArrive, int? timeLeave, string date, DateTime current, List<WorkShift> rules, List<WorkShift>? lpRules = null)
 		{
 			TimeArrive = timeArrive;
 			TimeLeave = timeLeave;
 
 			DateTime target = DateTime.ParseExact(date, "yyyy-MM-dd", null);
+			if (current < target)
+				return;
+			 
 			WorkShift? ruleSelected = Shift.SelectRule(target, rules);
 			
 			if (ruleSelected is null && lpRules is not null)
@@ -50,15 +53,24 @@ namespace TcServer.Views.Schedule.Index
 				WorkDayDesc? wd = ruleSelected[target.DayOfWeek];
 				if (wd is not null)
 				{
-					if (wd.Ar is not null && timeArrive is null)
-						ArriveState = State.Skip;
-					else if (timeArrive > wd.Ar)
-						ArriveState = State.Late;
-
-					if (wd.Lv is not null && timeLeave is null)
-						LeaveState = State.Skip;
-					else if (timeLeave < wd.Lv)
-						LeaveState = State.Early;
+					if (wd.Ar is not null)
+					{
+						if (timeArrive is null)
+						{
+							if (target.AddMinutes(wd.Ar.Value) < current)
+								ArriveState = State.Skip;
+						}
+						else if (timeArrive > wd.Ar)
+							ArriveState = State.Late;
+					}
+					
+					if (wd.Lv is not null)
+					{
+						if (timeLeave is null)
+							LeaveState = State.Skip;
+						else if (timeLeave < wd.Lv)
+							LeaveState = State.Early;
+					}
 				}
 			}
 		}
@@ -86,7 +98,5 @@ namespace TcServer.Views.Schedule.Index
 		public int EmplsWithPhonesTotal { get; set; }
 		
 		public int EmplsWithPhones { get; set; }
-
-		public List<Device> AvailableDevices { get; set; } = new();
 	}
 }

@@ -31,7 +31,7 @@ namespace TcServer.Controllers
 		}
 		
 		[NonAction]
-		public async Task<Dictionary<Employee, Record?>> CollectRecords(object scope, string? date)
+		public async Task<Dictionary<Employee, Record?>> CollectRecords(object scope, string? date, DateTime current)
 		{
 			List<Employee> empls;
 			int compId;
@@ -95,7 +95,7 @@ namespace TcServer.Controllers
 				(
 					record?.TimeArrive,
 					record?.TimeLeave,
-					date, ruleset,
+					date, current, ruleset,
 					shifts[string.Empty]
 				);
 			}
@@ -146,17 +146,18 @@ namespace TcServer.Controllers
 			
 			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				var pdata = await Utility.ParseViewpath(this, compname, unitname, client);
+				var pdata = await Utility.ParseViewpath(this, compname, unitname == "__all__" ? null : unitname, client);
 				if (pdata is null)
 					return BadRequest();
 				
-				string selDate = viewdate ?? DateTime.Now.AddHours (
+				var now = DateTime.Now.AddHours (
 					pdata.Company is not null
 					? JsonSerializer.Deserialize<Company.Settings>
 						(pdata.Company.JsonSettings)?.GMTOffset ?? 0.0
 					: 0.0
-				).ToString("yyyy-MM-dd");
+				);
 				
+				string selDate = viewdate ?? now.ToString("yyyy-MM-dd");
 				int emplsPt = 0, emplsT = 0, emplsP = 0;
 				
 				if (pdata.Company is not null)
@@ -191,15 +192,10 @@ namespace TcServer.Controllers
 					EmplsWithPhonesTotal = emplsPt
 				};
 				
-				if (viewdata.Active is not null)
-				{
-					viewdata.Records = await CollectRecords(viewdata.Active, viewdate);
-					
-					// for assigning devices to new employees
-					viewdata.AvailableDevices = await dbCtx.Devices
-						.Where(d => d.CompanyId == pdata.Company!.Id)
-						.ToListAsync();
-				}
+				var recScope = viewdata.Active as object ?? viewdata.Company as object;
+				if (recScope is not null)
+					viewdata.Records = await CollectRecords(recScope, viewdate, now);
+				
 				scope.Complete();
 			}
 			return View(viewdata);
@@ -241,6 +237,11 @@ namespace TcServer.Controllers
 			if (pdata is null || pdata.Company is null)
 				return BadRequest();
 			
+			var now = DateTime.Now.AddHours (
+				JsonSerializer.Deserialize<Company.Settings>
+					(pdata.Company.JsonSettings)?.GMTOffset ?? 0.0
+			);
+			
 			Dictionary<string/* date */,
 				Dictionary<int /* unit id */,
 					Dictionary<Employee, Record?>
@@ -252,12 +253,12 @@ namespace TcServer.Controllers
 				if (pdata.Active is not null)
 				{
 					worksheets[date] = new();
-					worksheets[date][pdata.Active.Id] = await CollectRecords(pdata.Active, date);
+					worksheets[date][pdata.Active.Id] = await CollectRecords(pdata.Active, date, now);
 					continue;
 				}
 				
 				Dictionary<int /* unit id */, Dictionary<Employee, Record?>> pagedata = new();
-				Dictionary<Employee, Record?> allUnitsRec = await CollectRecords(pdata.Company, date);
+				Dictionary<Employee, Record?> allUnitsRec = await CollectRecords(pdata.Company, date, now);
 				
 				foreach (var pair in allUnitsRec)
 				{
