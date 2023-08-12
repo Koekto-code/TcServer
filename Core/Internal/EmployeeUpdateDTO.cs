@@ -11,5 +11,7 @@ namespace TcServer.Core.Internal
 		public string? HomeAddress { get; set; }
 		
 		public string? Phone { get; set; }
+		
+		public string? IdCard { get; set; }
 	}
 }

@@ -484,10 +484,16 @@ namespace TcServer.Controllers
 				if (dto.JobTitle is not null)
 					empl.JobTitle = dto.JobTitle;
 				
-				if (dto.Name is not null)
+				if (dto.Name is not null && dto.Name != empl.Name)
 				{
 					devSyncNeeded = true;
 					empl.Name = dto.Name;
+				}
+				
+				if (dto.IdCard is not null && dto.IdCard != empl.IdCard)
+				{
+					devSyncNeeded = true;
+					empl.IdCard = dto.IdCard;
 				}
 				
 				empl.HomeAddress = dto.HomeAddress;
@@ -513,7 +519,8 @@ namespace TcServer.Controllers
 						dev.Address, dev.Password!,
 						new() {
 							id = empl.InnerCompId.ToString(),
-							name = empl.Name
+							name = empl.Name,
+							idcardNum = empl.IdCard
 						}
 					);
 					sync &= updStatus?.success == true;

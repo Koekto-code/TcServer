@@ -60,6 +60,7 @@ function saveChanges()
 	// const name = document.getElementById('empl-name');
 	const addr = document.getElementById('empl-addr');
 	const phone = document.getElementById('empl-phone');
+	const idcard = document.getElementById('empl-idcard');
 	
 	const options = {
 		method: 'POST',
@@ -70,7 +71,8 @@ function saveChanges()
 			'JobTitle': title.value,
 			// 'Name': name.value,
 			'HomeAddress': addr.value,
-			'Phone': phone.value
+			'Phone': phone.value,
+			'IdCard': idcard.value
 		})
 	};
 	fetch(`/manage/employees/update?emplid=${emplId}`, options)

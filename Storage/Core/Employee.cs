@@ -45,6 +45,8 @@ namespace TcServer.Storage.Core
 		public string? HomeAddress { get; set; }
 		
 		public string? Phone { get; set; }
+		
+		public string? IdCard { get; set; }
 
 		public bool RemoteSynchronized { get; set; } = false;
 		

@@ -72,6 +72,13 @@
             </div>
             <div class="row-br"></div>
             <div class="flex-row">
+              <div class="fc">Номер карты</div>
+              <div class="sc">
+                <input type="text" id="empl-idcard" class="inline-text-input" value='@(Model.Employee.IdCard ?? "")' oninput="highlightSaveBtn()" autocomplete="off">
+              </div>
+            </div>
+            <div class="row-br"></div>
+            <div class="flex-row">
               <div class="fc">Уведомления WhatsApp</div>
               <div class="sc">
                 <div class="checkbox-overlay middlepos">
