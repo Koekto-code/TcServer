@@ -23,7 +23,9 @@ builder.Services.AddDbContext<CoreContext> (
 			builder.Configuration.GetConnectionString("DefaultConnection")!
 		);
 		options.EnableSensitiveDataLogging(false);
-	}
+	},
+	ServiceLifetime.Scoped,
+	ServiceLifetime.Singleton
 );
 
 builder.Services.AddDbContext<SyncContext> (
@@ -44,7 +46,7 @@ builder.Services.AddHttpClient("WhatsAppNotify", (c) => {
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IRemoteService, RemoteService>();
+builder.Services.AddTransient<IRemoteService, RemoteService>();
 
 builder.Services.AddSingleton<IConfigService, ConfigService>();
 builder.Services.AddSingleton<IUpdateService, UpdateService>();
