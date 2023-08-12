@@ -55,6 +55,13 @@ public class SyncService: BackgroundService
 			// perform employees' sync for each company
 			foreach (var el in mapping)
 			{
+				// Considering there're 2 scopes of changes, called 'inner' and 'remote':
+				//   First ones are made on this site
+				//   Second ones are made manually while interacting with devices, respectively
+				// Only one of them may have value at the moment
+				// The decision whether accept 1st or 2nd scope changes
+				//   is made for each employee, depending on the state of local data
+				
 				List<Employee> innerEmpls;
 				using (var scope = Transactions.DbAsyncScopeRC())
 				{
@@ -64,10 +71,9 @@ public class SyncService: BackgroundService
 					scope.Complete();
 				}
 				
-				// to store IDs of employees to be marked as RemoteSynchronized
-				HashSet<int> synced = new();
+				Dictionary<int, Employee> innerChangedEmpls = new();
 				
-				// ensure innnerEmpls is equal to list of employees stored in device
+				// ensure innerEmpls is equal to list of employees stored in device
 				foreach (var dev in el.Value)
 				{
 					if (dev.Password is null || !updSvc.DevStat[dev.SerialNumber])
@@ -80,28 +86,45 @@ public class SyncService: BackgroundService
 					if (remoteEmpls is null)
 						continue;
 					
-					var tasks = new List<Task<PersonResponseDTO?>>();
+					List<Task<PersonResponseDTO?>> tasks = new();
+					List<int> tasksEmplNums = new(); // to know the employee related to each remote task
 					
-					foreach (var empl in innerEmpls)
+					for (int i = 0; i != innerEmpls.Count; ++i)
 					{
+						var empl = innerEmpls[i];
 						string eid = empl.InnerCompId.ToString();
 						
 						if (remoteEmpls.ContainsKey(eid))
 						{
+							var re = remoteEmpls[eid];
 							if (
-								remoteEmpls[eid].name != empl.Name ||
-								remoteEmpls[eid].phone != (empl.Phone ?? string.Empty)
+								re.name != empl.Name ||
+								re.phone != (empl.Phone ?? string.Empty) ||
+								re.idcardNum != (empl.IdCard ?? string.Empty)
 							) {
-								tasks.Add(remSvc.UpdateEmployee(dev.Address, dev.Password, new()
+								// if not marked as synchronized, prioritize inner changes
+								// (means failed to apply inner changes to remote before)
+								// otherwise let the remote changes apply
+								if (empl.RemoteSynchronized)
 								{
-									id = eid,
-									name = empl.Name,
-									phone = empl.Phone ?? string.Empty
-								}));
+									empl.Name = re.name;
+									empl.Phone = re.phone;
+									empl.IdCard = re.idcardNum;
+								}
+								else
+								{
+									tasks.Add(remSvc.UpdateEmployee(dev.Address, dev.Password, new()
+									{
+										id = eid,
+										name = empl.Name,
+										phone = empl.Phone ?? string.Empty,
+										idcardNum = empl.IdCard ?? string.Empty
+									}));
+									tasksEmplNums.Add(i);
+									empl.RemoteSynchronized = true;
+								}
+								innerChangedEmpls[empl.Id] = empl;
 							}
-							if (!empl.RemoteSynchronized)
-								synced.Add(empl.Id);
-							
 							remoteEmpls.Remove(eid);
 						}
 						else
@@ -112,27 +135,50 @@ public class SyncService: BackgroundService
 								name = empl.Name,
 								phone = empl.Phone
 							}));
+							tasksEmplNums.Add(i);
 						}
 					}
-					await Task.WhenAll(tasks);
+					var updTasks = await Task.WhenAll(tasks);
+					
+					for (int i = 0; i != tasks.Count; ++i)
+					{
+						PersonResponseDTO? ut = updTasks[i];
+						if (ut is null /* || !ut.success */)
+						{
+							var ie = innerEmpls[tasksEmplNums[i]];
+							if (ie.RemoteSynchronized)
+							{
+								ie.RemoteSynchronized = false;
+								innerChangedEmpls[ie.Id] = ie;
+							}
+						}
+					}
 					
 					List<string> delIds = remoteEmpls.Select(p => p.Key).ToList();
 					if (delIds.Count > 0)
 						await remSvc.RemoveEmployees(dev.Address, dev.Password, delIds);
 				}
 				
-				if (synced.Count != 0)
+				if (innerChangedEmpls.Count != 0)
 				{
 					using (var scope = Transactions.DbAsyncScopeDefault())
 					{
-						var notsynced = await dbCtx.Employees
-							.Where(e => !e.RemoteSynchronized)
+						innerEmpls = await dbCtx.Employees
+							.Where(e => e.CompanyId == el.Key)
 							.ToListAsync();
 						
-						foreach (var empl in notsynced)
+						foreach (var empl in innerEmpls)
 						{
-							if (synced.Contains(empl.Id))
-								empl.RemoteSynchronized = true;
+							if (innerChangedEmpls.ContainsKey(empl.Id))
+							{
+								var ch = innerChangedEmpls[empl.Id];
+								empl.RemoteSynchronized = ch.RemoteSynchronized;
+								empl.Name = ch.Name;
+								empl.HomeAddress = ch.HomeAddress;
+								empl.Notify = ch.Notify;
+								empl.IdCard = ch.IdCard;
+								empl.Phone = ch.Phone;
+							}
 						}
 						await dbCtx.SaveChangesAsync();
 						scope.Complete();
