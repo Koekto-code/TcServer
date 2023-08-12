@@ -91,14 +91,8 @@ function addWorkshift()
 	if (!valid)
 		return;
 	
-	const jobtitle_ti = document.getElementById('jobtitle_ti');
-	if (!jobtitle_ti.value) {
-		jobtitle_ti.classList.add('redfont-light');
-		return;
-	}
-	
 	const dto = {
-		JobTitle: jobtitle_ti.value,
+		JobTitle: document.getElementById('jobtitle_ti').value,
 		
 		DateBegin: document.getElementById('workshift-beg-di').value || null,
 		DateEnd: document.getElementById('workshift-end-di').value || null,
@@ -132,8 +126,6 @@ function addWorkshift()
 		},
 		body: JSON.stringify(dto)
 	};
-	
-	console.log(options);
 
 	fetch(`/manage/workshifts/add?compname=${compName}`, options)
 	.then((response) => {
