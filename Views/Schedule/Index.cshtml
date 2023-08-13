@@ -230,11 +230,14 @@
           }
         </div>
         }
-        @if (Model.Active is not null)
+        @if (!isRootView)
         {
         <h4>Сотрудники</h4>
         <div class="flex-col leftpadded">
+          @if (Model.Active is not null)
+          {
           <button class="menubtn" id="empl-add-btn">Добавить</button>
+          }
           <button class="menubtn" onclick="deleteSelectedEmployees()">Удалить</button>
           <div class="dropdown" dd-show="" id="dd3">
             <div class="dd-title" dd-value="" dd-parent="dd3" id="dd3_h">Переместить</div>

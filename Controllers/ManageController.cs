@@ -229,6 +229,8 @@ namespace TcServer.Controllers
 					if (!emplMap.ContainsKey(id))
 						continue;
 					
+					await dbCtx.Entry(emplMap[id]).Collection(e => e.AtdRecords).LoadAsync();
+					await dbCtx.Entry(emplMap[id]).Collection(e => e.Photos).LoadAsync();
 					dbCtx.Employees.Remove(emplMap[id]);
 				}
 				
@@ -620,6 +622,7 @@ namespace TcServer.Controllers
 				if (parse?.Active is null)
 					return BadRequest();
 				
+				await dbCtx.Entry(parse.Active).Collection(u => u.Employees).LoadAsync();
 				dbCtx.Units.Remove(parse.Active);
 				
 				await dbCtx.SaveChangesAsync();
