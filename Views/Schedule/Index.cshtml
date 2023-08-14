@@ -149,7 +149,13 @@
             <div class="flex-col hfull">
               <div class="flex-row">
                 <h3 class="leftpos">Отчёт за @(Model.SelectedDate)</h3>
-                <button onclick="window.location.reload()" class="rightpos">Обновить</button>
+                <div class="middlepos" id="tsf1-c">
+                  <label for="tsfcb1">Фильтр</label>
+                  <div class="checkbox-overlay">
+                    <input type="checkbox" id="tsfcb1">
+                  </div>
+                </div>
+                <button onclick="window.location.reload()" style="margin-right: 5px;">Обновить</button>
                 <button onclick="getExcelSheet()">Экспорт в XLSX</button>
               </div>
               <div style="overflow: hidden; margin-top: 5px;">
@@ -166,7 +172,7 @@
                   </table>
                   <div class="scroll-table-body">
                     <table>
-                      <tbody>
+                      <tbody id="tbody2">
                       @foreach (var entry in recNameSorted)
                       {
                         List<string> comments = new();

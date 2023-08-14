@@ -239,3 +239,12 @@ label[for="ddex2"] {
     padding-bottom: 3px;
     font-size: 14px;
 }
+
+#tsf1-c {
+    display: flex;
+    flex-direction: row;
+}
+
+#tsf1-c label {
+    margin-right: 5px;
+}

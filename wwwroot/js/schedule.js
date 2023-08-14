@@ -346,11 +346,15 @@ function pwdValidation(pass, pass1, btn)
 	const tbody = document.getElementById('tbody1');
 	const trows = Array.from(tbody.querySelectorAll('tr'));
 	const filter = document.getElementById('filter1');
-
-	filter.addEventListener('input', () => {
-		const filteredRows = trows.filter(row => {
-			if (!filter.value)
+	
+	const tbody2 = document.getElementById('tbody2');
+	const trows2 = Array.from(tbody2.querySelectorAll('tr'));
+	
+	const filterTable = (rows, filterval) => {
+		return rows.filter(row => {
+			if (!filterval)
 				return true;
+			
 			const fst = row.querySelector("td:first-child").innerText.toLowerCase();
 			const snd = row.querySelector("td:nth-child(2)").innerText.toLowerCase();
 			const trd = row.querySelector("td:nth-child(3)").innerText.toLowerCase();
@@ -362,12 +366,30 @@ function pwdValidation(pass, pass1, btn)
 			if (snd) ok |= snd.includes(fval);
 			if (trd) ok |= trd.includes(fval);
 			return ok;
-		});
-		tbody.innerHTML = "";
-		filteredRows.forEach(row => {
-			tbody.appendChild(row);
 		})
+	};
+	
+	const updateTable = (rows, filterval, tb) => {
+		const filteredRows = filterTable(rows, filterval);
+		tb.innerHTML = "";
+		filteredRows.forEach(row => {
+			tb.appendChild(row);
+		})
+	};
+	
+	const tsfcb = document.getElementById('tsfcb1');
+	let filterSecond = tsfcb.checked;
+	
+	filter.addEventListener('input', () => {
+		updateTable(trows, filter.value, tbody);
+		if (filterSecond)
+			updateTable(trows2, filter.value, tbody2);
 	});
+	
+	tsfcb.addEventListener('click', () => {
+		filterSecond = tsfcb.checked;
+		updateTable(trows2, filterSecond ? filter.value : "", tbody2);
+	})
 }
 
 // adjust font size for dropdown items
