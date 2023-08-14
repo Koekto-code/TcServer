@@ -99,7 +99,6 @@ public class SyncService: BackgroundService
 							var re = remoteEmpls[eid];
 							if (
 								re.name != empl.Name ||
-								re.phone != (empl.Phone ?? string.Empty) ||
 								re.idcardNum != (empl.IdCard ?? string.Empty)
 							) {
 								// if not marked as synchronized, prioritize inner changes
@@ -108,7 +107,6 @@ public class SyncService: BackgroundService
 								if (empl.RemoteSynchronized)
 								{
 									empl.Name = re.name;
-									empl.Phone = re.phone;
 									empl.IdCard = re.idcardNum;
 								}
 								else
@@ -117,7 +115,6 @@ public class SyncService: BackgroundService
 									{
 										id = eid,
 										name = empl.Name,
-										phone = empl.Phone ?? string.Empty,
 										idcardNum = empl.IdCard ?? string.Empty
 									}));
 									tasksEmplNums.Add(i);
