@@ -12,8 +12,9 @@
   bool isRootView = Model.Company is null;
   bool isAdmin = Model.AccType == AccountType.Admin;
   
-  var recIdSorted = Model.Records.OrderBy(p => p.Key.InnerCompId).ToList();
-  var recNameSorted = Model.Records.OrderBy(p => p.Key.Name).ToList();
+  var recIdSorted = Model.Records.OrderBy(p => p.Key.InnerCompId);
+  var recNameSorted = Model.Records.OrderBy(p => p.Key.Name);
+  Model.Units.Sort();
 }
 
 <!DOCTYPE html>
