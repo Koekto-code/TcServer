@@ -248,3 +248,22 @@ label[for="ddex2"] {
 #tsf1-c label {
     margin-right: 5px;
 }
+
+#dots-btn1 {
+    margin-right: 5px;
+    margin-left: 5px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+#door-btn1 {
+    margin-right: 5px;
+    margin-left: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.red-bg-highlight {
+    border-radius: 5px;
+    background-color: #ae024080;
+}

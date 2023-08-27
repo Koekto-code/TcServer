@@ -230,6 +230,31 @@ function exportCustomExcel()
 	window.location.href = link;
 }
 
+{
+	const doorbtn = document.getElementById('door-btn1');
+	function openAllDoors()
+	{
+		const init = {
+			method: 'POST'
+		};
+
+		fetch(`/manage/comp/openalldoors?compname=${compName}`, init)
+		.then((response) => {
+			if (!response.ok) {
+				doorbtn.classList.add('red-bg-highlight');
+				setTimeout(() => {
+					doorbtn.classList.remove('red-bg-highlight');
+				}, 2500);
+				throw new Error(`Fetch error: ${response.status}`);
+			}
+		});
+	}
+	doorbtn.addEventListener('click', () => {
+		doorbtn.classList.remove('red-bg-highlight');
+		openAllDoors();
+	});
+}
+
 function pwdValidation(pass, pass1, btn)
 {
 	btn.style.pointerEvents = "none";

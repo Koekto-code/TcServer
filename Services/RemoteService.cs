@@ -23,19 +23,21 @@ namespace TcServer.Services
 		
 		Task<PersonResponseDTO?> UpdateEmployee(string uri, string pass, PersonSubmitDTO dto);
 		
-		Task<DevResponseDTO?> RemoveEmployees(string uri, string pass, List<string> ids);
+		Task<DevExtResponseDTO?> RemoveEmployees(string uri, string pass, List<string> ids);
 		
 		Task<PersonListResponseDTO?> QueryEmployees(string uri, string pass, string id);
 		
 		Task<PhotoAssignResponseDTO?> AssignPhoto(string uri, string pass, PhotoAssignDTO dto, bool initial = true);
 		
-		Task<DevResponseDTO?> DeletePhoto(string uri, string pass, string faceId);
+		Task<DevExtResponseDTO?> DeletePhoto(string uri, string pass, string faceId);
 		
 		Task<RecordsResponseDTO?> QueryRecords(string uri, string pass, RecordsQueryDTO dto);
 		
-		Task<DevResponseDTO?> DeleteRecords(string uri, string pass, RecordsDeleteDTO dto);
+		Task<DevExtResponseDTO?> DeleteRecords(string uri, string pass, RecordsDeleteDTO dto);
 		
-		Task<DevResponseDTO?> SetIdentifyCallback(string uri, string pass, SetIdentifyCallbackDTO dto);
+		Task<DevExtResponseDTO?> SetIdentifyCallback(string uri, string pass, SetIdentifyCallbackDTO dto);
+		
+		Task<DevResponseDTO?> SendControl(string uri, string pass, DoorControlDTO dto);
 	}
 	
 	public class RemoteService: IRemoteService
@@ -57,7 +59,7 @@ namespace TcServer.Services
 			return await Methods.UpdateEmployee(devClient, uri, pass, dto);
 		}
 		
-		public async Task<DevResponseDTO?> RemoveEmployees(string uri, string pass, List<string> ids)
+		public async Task<DevExtResponseDTO?> RemoveEmployees(string uri, string pass, List<string> ids)
 		{
 			return await Methods.RemoveEmployees(devClient, uri, pass, ids);
 		}
@@ -72,7 +74,7 @@ namespace TcServer.Services
 			return await Methods.AssignPhoto(devClient, uri, pass, dto, initial);
 		}
 		
-		public async Task<DevResponseDTO?> DeletePhoto(string uri, string pass, string faceId)
+		public async Task<DevExtResponseDTO?> DeletePhoto(string uri, string pass, string faceId)
 		{
 			return await Methods.DeletePhoto(devClient, uri, pass, faceId);
 		}
@@ -82,14 +84,19 @@ namespace TcServer.Services
 			return await Methods.QueryRecords(devClient, uri, pass, dto);
 		}
 		
-		public async Task<DevResponseDTO?> DeleteRecords(string uri, string pass, RecordsDeleteDTO dto)
+		public async Task<DevExtResponseDTO?> DeleteRecords(string uri, string pass, RecordsDeleteDTO dto)
 		{
 			return await Methods.DeleteRecords(devClient, uri, pass, dto);
 		}
 		
-		public async Task<DevResponseDTO?> SetIdentifyCallback(string uri, string pass, SetIdentifyCallbackDTO dto)
+		public async Task<DevExtResponseDTO?> SetIdentifyCallback(string uri, string pass, SetIdentifyCallbackDTO dto)
 		{
 			return await Methods.SetIdentifyCallback(devClient, uri, pass, dto);
+		}
+		
+		public async Task<DevResponseDTO?> SendControl(string uri, string pass, DoorControlDTO dto)
+		{
+			return await Methods.SendControl(devClient, uri, pass, dto);
 		}
 	}
 }

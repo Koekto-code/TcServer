@@ -56,7 +56,7 @@ namespace TcServer.Services
 				scope.Complete();
 			}
 			
-			var tasks = new Task<DevResponseDTO?>[devices.Count];
+			var tasks = new Task<DevExtResponseDTO?>[devices.Count];
 			for (int i = 0; i != devices.Count; ++i)
 				tasks[i] = Methods.GetDeviceKey(devClient, devices[i].Address);
 			

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using TcServer;
 using TcServer.Storage.Core;
@@ -38,7 +39,7 @@ namespace TcServer.Core.Remote
 			return null;
 		}
 		
-		public static async Task<DevResponseDTO?> GetDeviceKey(HttpClient client, string uri)
+		public static async Task<DevExtResponseDTO?> GetDeviceKey(HttpClient client, string uri)
 		{
 			HttpResponseMessage response = null!;
 			try
@@ -47,7 +48,7 @@ namespace TcServer.Core.Remote
 				response = await client.GetAsync(uri + "/getDeviceKey");
 			}
 			catch (Exception) { return null; }
-			return await TryJson<DevResponseDTO>(response);
+			return await TryJson<DevExtResponseDTO>(response);
 		}
 		
 		public static async Task<PersonResponseDTO?> AddEmployee
@@ -94,7 +95,7 @@ namespace TcServer.Core.Remote
 			return await TryJson<PersonResponseDTO>(response);
 		}
 		
-		public static async Task<DevResponseDTO?> RemoveEmployees
+		public static async Task<DevExtResponseDTO?> RemoveEmployees
 		(
 			HttpClient client, string uri, string pass,
 			List<string> ids // -1 to remove all
@@ -115,7 +116,7 @@ namespace TcServer.Core.Remote
 			catch (Exception) { return null; }
 			
 			// @todo more advanced response
-			return await TryJson<DevResponseDTO>(response);
+			return await TryJson<DevExtResponseDTO>(response);
 		}
 		
 		public static async Task<PersonListResponseDTO?> QueryEmployees
@@ -166,7 +167,7 @@ namespace TcServer.Core.Remote
 			return await TryJson<PhotoAssignResponseDTO>(response);
 		}
 		
-		public static async Task<DevResponseDTO?> DeletePhoto
+		public static async Task<DevExtResponseDTO?> DeletePhoto
 		(
 			HttpClient client, string uri, string pass,
 			string faceId
@@ -186,7 +187,7 @@ namespace TcServer.Core.Remote
 				response = await client.PostAsync(path, formcontent);
 			}
 			catch (Exception) { return null; }
-			return await TryJson<DevResponseDTO>(response);
+			return await TryJson<DevExtResponseDTO>(response);
 		}
 		
 		public static async Task<RecordsResponseDTO?> QueryRecords
@@ -214,7 +215,7 @@ namespace TcServer.Core.Remote
 			return await TryJson<RecordsResponseDTO>(response);
 		}
 		
-		public static async Task<DevResponseDTO?> DeleteRecords
+		public static async Task<DevExtResponseDTO?> DeleteRecords
 		(
 			HttpClient client, string uri, string pass,
 			RecordsDeleteDTO dto
@@ -233,10 +234,10 @@ namespace TcServer.Core.Remote
 				response = await client.PostAsync(path, new StringContent(string.Empty));
 			}
 			catch (Exception) { return null; }
-			return await TryJson<DevResponseDTO>(response);
+			return await TryJson<DevExtResponseDTO>(response);
 		}
 		
-		public static async Task<DevResponseDTO?> SetIdentifyCallback (
+		public static async Task<DevExtResponseDTO?> SetIdentifyCallback (
 			HttpClient client, string uri, string pass,
 			SetIdentifyCallbackDTO dto
 		) {
@@ -257,7 +258,31 @@ namespace TcServer.Core.Remote
 				response = await client.PostAsync(path, formcontent);
 			}
 			catch (Exception) { return null; }
+			return await TryJson<DevExtResponseDTO>(response);
+		}
+		
+		public static async Task<DevResponseDTO?> SendControl (
+			HttpClient client, string uri, string pass,
+			DoorControlDTO dto
+		) {
+			HttpResponseMessage response = null!;
+			string path = uri + "/device/openDoorControl";
+
+			Dictionary<string, string> formData = new Dictionary<string, string>
+			{
+				{ "pass", pass }
+			};
+			if (dto.type is not null)
+				formData["type"] = dto.type.Value.ToString();
+			if (dto.content is not null)
+				formData["content"] = dto.content.ToString();
 			
+			HttpContent formcontent = new FormUrlEncodedContent(formData);
+			try
+			{
+				response = await client.PostAsync(path, formcontent);
+			}
+			catch (Exception) { return null; }
 			return await TryJson<DevResponseDTO>(response);
 		}
 	}

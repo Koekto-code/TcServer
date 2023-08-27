@@ -56,7 +56,7 @@ namespace TcServer.Controllers
 				}
 				else return Unauthorized();
 				
-				DevResponseDTO? resp = await Methods.GetDeviceKey(devClient, dto.addr);
+				DevExtResponseDTO? resp = await Methods.GetDeviceKey(devClient, dto.addr);
 				if (resp is null || !resp.success)
 					return BadRequest();
 				
@@ -143,7 +143,7 @@ namespace TcServer.Controllers
 			string hostAddr = cfgSvc.Access()["Host:Address"]!;
 			
 			var remSvc = HttpContext.RequestServices.GetRequiredService<IRemoteService>();
-			var tasks = new List<Task<DevResponseDTO?>>();
+			var tasks = new List<Task<DevExtResponseDTO?>>();
 			var devices = new List<Device>();
 			Company? comp;
 			
@@ -700,6 +700,49 @@ namespace TcServer.Controllers
 				await dbCtx.SaveChangesAsync();
 				scope.Complete();
 			}
+			
+			await dbCtx.SaveRemoteChangesAsync();
+			return Ok();
+		}
+		
+		[HttpPost("comp/openalldoors")]
+		[CookieAuthorize]
+		public async Task<IActionResult> OpenAllDoors(string compname)
+		{
+			var client = (Account)HttpContext.Items["authEntity"]!;
+			List<Device> devices;
+			
+			using (var scope = Transactions.DbAsyncScopeDefault())
+			{
+				var parse = await Utility.ParseViewpath(this, compname, null, client, false);
+				if (parse?.Company is null)
+					return BadRequest();
+				
+				devices = await dbCtx.Devices
+					.Where(d => d.CompanyId == parse.Company.Id)
+					.Where(d => d.Password != null)
+					.ToListAsync();
+				
+				scope.Complete();
+			}
+			
+			var remSvc = HttpContext.RequestServices.GetRequiredService<IRemoteService>();
+			
+			List<Task<DevResponseDTO?>> tasks = new();
+			foreach (var dev in devices)
+			{
+				tasks.Add(remSvc.SendControl(dev.Address, dev.Password!, new() {
+					type = 1
+				}));
+			}
+			
+			DevResponseDTO?[] stat = await Task.WhenAll(tasks);
+			bool successAll = true;
+			foreach (var st in stat)
+				successAll &= !st?.success ?? false;
+			
+			if (!successAll)
+				return BadRequest();
 			
 			await dbCtx.SaveRemoteChangesAsync();
 			return Ok();
