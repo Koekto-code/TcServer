@@ -104,12 +104,14 @@ public class SyncService: BackgroundService
 								// if not marked as synchronized, prioritize inner changes
 								// (means failed to apply inner changes to remote before)
 								// otherwise let the remote changes apply
-								if (empl.RemoteSynchronized)
-								{
-									empl.Name = re.name;
-									empl.IdCard = re.idcardNum;
-								}
-								else
+								
+								// @fixme wrong employees' names in certain cases when adding to other company from admin account
+								// if (empl.RemoteSynchronized)
+								// {
+								// 	empl.Name = re.name;
+								// 	empl.IdCard = re.idcardNum;
+								// }
+								// else
 								{
 									tasks.Add(remSvc.UpdateEmployee(dev.Address, dev.Password, new()
 									{
