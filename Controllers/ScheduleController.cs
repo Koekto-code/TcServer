@@ -287,14 +287,15 @@ namespace TcServer.Controllers
 					var worksheet = workbook.AddWorksheet(pair.Key);
 					worksheet.Column(1).Width = 35;
 					worksheet.Column(2).Width = 15;
-					worksheet.Column(3).Width = 40;
-					worksheet.Column(4).Width = 15;
+					worksheet.Column(3).Width = 15;
+					worksheet.Column(4).Width = 40;
 					worksheet.Column(5).Width = 15;
-					worksheet.Column(6).Width = 30;
+					worksheet.Column(6).Width = 15;
+					worksheet.Column(7).Width = 30;
 					
 					int row = 1;
 					
-					var tophdr = worksheet.Range(row, 1, row, 6);
+					var tophdr = worksheet.Range(row, 1, row, 7);
 					tophdr.Merge();
 					tophdr.Style.Font.Bold = true;
 					tophdr.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -313,23 +314,24 @@ namespace TcServer.Controllers
 						++row;
 						
 						int rowbeg = ++row;
-						var hdr = worksheet.Range(row, 1, row, 6);
+						var hdr = worksheet.Range(row, 1, row, 7);
 						hdr.Merge();
 						hdr.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						hdr.Style.Fill.BackgroundColor = XLColor.Mint;
 						hdr.Value = unitdata.Key;
 						
 						++row;
-						var hdrcols = worksheet.Range(row, 1, row, 6);
+						var hdrcols = worksheet.Range(row, 1, row, 7);
 						hdrcols.Style.Font.Bold = true;
 						hdrcols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						
 						worksheet.Cell(row, 1).Value = "Должность";
 						worksheet.Cell(row, 2).Value = "ID";
-						worksheet.Cell(row, 3).Value = "Имя сотрудника";
-						worksheet.Cell(row, 4).Value = "Время прихода";
-						worksheet.Cell(row, 5).Value = "Время ухода";
-						worksheet.Cell(row, 6).Value = "Комментарий";
+						worksheet.Cell(row, 3).Value = "ID карты";
+						worksheet.Cell(row, 4).Value = "Имя сотрудника";
+						worksheet.Cell(row, 5).Value = "Время прихода";
+						worksheet.Cell(row, 6).Value = "Время ухода";
+						worksheet.Cell(row, 7).Value = "Комментарий";
 						
 						var empldataSorted = unitdata.Value.OrderBy(p => p.Key.Name);
 						foreach (var recdata in empldataSorted)
@@ -337,11 +339,12 @@ namespace TcServer.Controllers
 							++row;
 							worksheet.Cell(row, 1).Value = recdata.Key.JobTitle;
 							worksheet.Cell(row, 2).Value = recdata.Key.InnerCompId.ToString();
-							worksheet.Cell(row, 3).Value = recdata.Key.Name;
+							worksheet.Cell(row, 3).Value = recdata.Key.IdCard ?? string.Empty;
+							worksheet.Cell(row, 4).Value = recdata.Key.Name;
 							if (recdata.Value is not null)
 							{
-								worksheet.Cell(row, 4).Value = DayTime.ToString(recdata.Value.TimeArrive);
-								worksheet.Cell(row, 5).Value = DayTime.ToString(recdata.Value.TimeLeave);
+								worksheet.Cell(row, 5).Value = DayTime.ToString(recdata.Value.TimeArrive);
+								worksheet.Cell(row, 6).Value = DayTime.ToString(recdata.Value.TimeLeave);
 								
 								var comments = new List<string>();
 								
@@ -353,14 +356,14 @@ namespace TcServer.Controllers
 								if (recdata.Value.LeaveState == Record.State.Early)
 									comments.Add("Ранний уход");
 								
-								worksheet.Cell(row, 6).Value = string.Join(", ", comments);
+								worksheet.Cell(row, 7).Value = string.Join(", ", comments);
 							}
 						}
 						
-						var timecols = worksheet.Range(rowbeg, 4, row, 5);
+						var timecols = worksheet.Range(rowbeg, 5, row, 6);
 						timecols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						
-						var result = worksheet.Range(rowbeg, 1, row, 6);
+						var result = worksheet.Range(rowbeg, 1, row, 7);
 						result.Style.Border.TopBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.RightBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.LeftBorder = XLBorderStyleValues.Thin;
