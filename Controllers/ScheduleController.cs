@@ -292,10 +292,11 @@ namespace TcServer.Controllers
 					worksheet.Column(5).Width = 15;
 					worksheet.Column(6).Width = 15;
 					worksheet.Column(7).Width = 30;
+					worksheet.Column(8).Width = 25;
 					
 					int row = 1;
 					
-					var tophdr = worksheet.Range(row, 1, row, 7);
+					var tophdr = worksheet.Range(row, 1, row, 8);
 					tophdr.Merge();
 					tophdr.Style.Font.Bold = true;
 					tophdr.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -314,14 +315,14 @@ namespace TcServer.Controllers
 						++row;
 						
 						int rowbeg = ++row;
-						var hdr = worksheet.Range(row, 1, row, 7);
+						var hdr = worksheet.Range(row, 1, row, 8);
 						hdr.Merge();
 						hdr.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						hdr.Style.Fill.BackgroundColor = XLColor.Mint;
 						hdr.Value = unitdata.Key;
 						
 						++row;
-						var hdrcols = worksheet.Range(row, 1, row, 7);
+						var hdrcols = worksheet.Range(row, 1, row, 8);
 						hdrcols.Style.Font.Bold = true;
 						hdrcols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						
@@ -332,6 +333,7 @@ namespace TcServer.Controllers
 						worksheet.Cell(row, 5).Value = "Время прихода";
 						worksheet.Cell(row, 6).Value = "Время ухода";
 						worksheet.Cell(row, 7).Value = "Комментарий";
+						worksheet.Cell(row, 8).Value = "Телефон";
 						
 						var empldataSorted = unitdata.Value.OrderBy(p => p.Key.Name);
 						foreach (var recdata in empldataSorted)
@@ -341,6 +343,7 @@ namespace TcServer.Controllers
 							worksheet.Cell(row, 2).Value = recdata.Key.InnerCompId.ToString();
 							worksheet.Cell(row, 3).Value = recdata.Key.IdCard ?? string.Empty;
 							worksheet.Cell(row, 4).Value = recdata.Key.Name;
+							worksheet.Cell(row, 8).Value = recdata.Key.Phone ?? string.Empty;
 							if (recdata.Value is not null)
 							{
 								worksheet.Cell(row, 5).Value = DayTime.ToString(recdata.Value.TimeArrive);
@@ -363,7 +366,7 @@ namespace TcServer.Controllers
 						var timecols = worksheet.Range(rowbeg, 5, row, 6);
 						timecols.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 						
-						var result = worksheet.Range(rowbeg, 1, row, 7);
+						var result = worksheet.Range(rowbeg, 1, row, 8);
 						result.Style.Border.TopBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.RightBorder = XLBorderStyleValues.Thin;
 						result.Style.Border.LeftBorder = XLBorderStyleValues.Thin;
