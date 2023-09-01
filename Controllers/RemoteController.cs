@@ -120,11 +120,7 @@ namespace TcServer.Controllers
 				
 				/*====   photo part   ====*/
 				
-				if (rec.base64 is null || rec.base64 == string.Empty)
-				{
-					Console.WriteLine($"warning: No base64 content in photo. Please reset callbacks on {device.SerialNumber}");
-				}
-				else
+				if (rec.base64 is not null && rec.base64 != string.Empty)
 				{
 					photo = new()
 					{

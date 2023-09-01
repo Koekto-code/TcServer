@@ -495,7 +495,7 @@ namespace TcServer.Controllers
 				if (dto.IdCard is not null && dto.IdCard != empl.IdCard)
 				{
 					devSyncNeeded = true;
-					empl.IdCard = dto.IdCard;
+					empl.IdCard = dto.IdCard == string.Empty ? null : dto.IdCard;
 				}
 				
 				empl.HomeAddress = dto.HomeAddress;

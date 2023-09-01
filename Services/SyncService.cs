@@ -37,7 +37,7 @@ public class SyncService: BackgroundService
 		{
 			await updSvc.UpdateDevicesStat();
 			
-			Dictionary<int, List<Device>> mapping = new();
+			Dictionary<int /* CompanyId */, List<Device>> mapping = new();
 			
 			// map CompanyId to all devices of this company
 			using (var scope = Transactions.DbAsyncScopeRC())
@@ -97,6 +97,10 @@ public class SyncService: BackgroundService
 						if (remoteEmpls.ContainsKey(eid))
 						{
 							var re = remoteEmpls[eid];
+							// if (re.idcardNum.Length != 0 || empl.IdCard is not null)
+							// {
+							// 	Console.WriteLine($"rem: {re.idcardNum} inn: {empl.IdCard}");
+							// }
 							if (
 								re.name != empl.Name ||
 								re.idcardNum != (empl.IdCard ?? string.Empty)
@@ -117,7 +121,7 @@ public class SyncService: BackgroundService
 									{
 										id = eid,
 										name = empl.Name,
-										idcardNum = empl.IdCard ?? string.Empty
+										idcardNum = empl.IdCard
 									}));
 									tasksEmplNums.Add(i);
 									empl.RemoteSynchronized = true;
