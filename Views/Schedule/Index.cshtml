@@ -46,7 +46,7 @@
                     <!-- Unit selector -->
                     <div class="dropdown main-dd" dd-show="" id="dd1">
                       <div class="dd-title" dd-parent="dd1" id="dd1_h">@(Model.Active is null ? "(Все отделы)" : Model.Active.Name)</div>
-                      <div class="dd-list">
+                      <div class="dd-list" id="dd1_l">
                         <input id="dd1_i0" class="dd-item" type="radio" onclick="changeUnit('__all__')" />
                         <label for="dd1_i0" id="dd1_l0" class="dd-label" dd-header="dd1_h">(Все отделы)</label>
                         @for (int i = 0; i != Model.Units.Count; ++i)
@@ -62,7 +62,7 @@
                     <!-- Company selector -->
                     <div class="dropdown rightpos main-dd" dd-show="" id="dd0">
                       <div class="dd-title" dd-parent="dd0" id="dd0_h">@(Model.Company is null ? "Организация" : Model.Company.Name)</div>
-                      <div class="dd-list">
+                      <div class="dd-list" id="dd0_l">
                         @for (int i = 0; i != Model.Companies.Count; ++i)
                         {
                         if (i != 0) {<div class="dd-sep"></div>}
@@ -130,7 +130,7 @@
                       <td class="st-actions-column">
                         <div class="flex-row">
                           <div class="checkbox-overlay">
-                            <input type="checkbox" name="empl-select" value=@entry.Key.InnerCompId>
+                            <input type="checkbox" name="empl-select" value="@entry.Key.InnerCompId">
                           </div>
                         </div>
                       </td>

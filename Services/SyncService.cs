@@ -42,7 +42,11 @@ public class SyncService: BackgroundService
 			// map CompanyId to all devices of this company
 			using (var scope = Transactions.DbAsyncScopeRC())
 			{
-				foreach (var dev in dbCtx.Devices.Where(d => d.CompanyId != null))
+				var devices = await dbCtx.Devices
+					.Where(d => d.CompanyId != null)
+					.ToListAsync();
+				
+				foreach (var dev in devices)
 				{
 					int k = dev.CompanyId!.Value;
 					if (!mapping.ContainsKey(k))
@@ -58,9 +62,8 @@ public class SyncService: BackgroundService
 				// Considering there're 2 scopes of changes, called 'inner' and 'remote':
 				//   First ones are made on this site
 				//   Second ones are made manually while interacting with devices, respectively
-				// Only one of them may have value at the moment
-				// The decision whether accept 1st or 2nd scope changes
-				//   is made for each employee, depending on the state of local data
+				// Since companies may have several devices with different data stored, all remote changes
+				// are aborted and replaced by inner ones
 				
 				List<Employee> innerEmpls;
 				using (var scope = Transactions.DbAsyncScopeRC())
@@ -71,9 +74,9 @@ public class SyncService: BackgroundService
 					scope.Complete();
 				}
 				
-				Dictionary<int, Employee> innerChangedEmpls = new();
+				Dictionary<int /* EmployeeId */, Employee> innerChangedEmpls = new();
 				
-				// ensure innerEmpls is equal to list of employees stored in device
+				// ensure innerEmpls is equal to list of employees stored in devices
 				foreach (var dev in el.Value)
 				{
 					if (dev.Password is null || !updSvc.DevStat[dev.SerialNumber])
@@ -97,35 +100,20 @@ public class SyncService: BackgroundService
 						if (remoteEmpls.ContainsKey(eid))
 						{
 							var re = remoteEmpls[eid];
-							// if (re.idcardNum.Length != 0 || empl.IdCard is not null)
-							// {
-							// 	Console.WriteLine($"rem: {re.idcardNum} inn: {empl.IdCard}");
-							// }
+							
 							if (
 								re.name != empl.Name ||
 								re.idcardNum != (empl.IdCard ?? string.Empty)
 							) {
-								// if not marked as synchronized, prioritize inner changes
-								// (means failed to apply inner changes to remote before)
-								// otherwise let the remote changes apply
-								
-								// @fixme wrong employees' names in certain cases when adding to other company from admin account
-								// if (empl.RemoteSynchronized)
-								// {
-								// 	empl.Name = re.name;
-								// 	empl.IdCard = re.idcardNum;
-								// }
-								// else
+								tasks.Add(remSvc.UpdateEmployee(dev.Address, dev.Password, new()
 								{
-									tasks.Add(remSvc.UpdateEmployee(dev.Address, dev.Password, new()
-									{
-										id = eid,
-										name = empl.Name,
-										idcardNum = empl.IdCard
-									}));
-									tasksEmplNums.Add(i);
-									empl.RemoteSynchronized = true;
-								}
+									id = eid,
+									name = empl.Name,
+									idcardNum = empl.IdCard
+								}));
+								tasksEmplNums.Add(i);
+								
+								empl.RemoteSynchronized = true;
 								innerChangedEmpls[empl.Id] = empl;
 							}
 							remoteEmpls.Remove(eid);
@@ -157,6 +145,7 @@ public class SyncService: BackgroundService
 						}
 					}
 					
+					// delete employees that don't exist in the database
 					List<string> delIds = remoteEmpls.Select(p => p.Key).ToList();
 					if (delIds.Count > 0)
 						await remSvc.RemoveEmployees(dev.Address, dev.Password, delIds);

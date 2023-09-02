@@ -12,7 +12,6 @@ namespace TcServer.Core.Remote
 		[Required]
 		public string name { get; set; } = null!;
 		
-		[JsonIgnore(Condition = JsonIgnoreCondition.Never)]
 		public string? idcardNum { get; set; }
 
 		public string? iDNumber { get; set; }

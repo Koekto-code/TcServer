@@ -149,48 +149,49 @@ label[for="ddex2"] {
     border-color: #de2332;
 }
 
-#dd3, #ddex {
+#dd0, #dd1, #dd3, #ddex {
     padding: 0 0;
     height: 32px;
 }
 
-#dd3_h, #ddex_h {
+#dd0_h, #dd1_h, #dd3_h, #ddex_h {
     height: 32px;
     margin: 0 0;
     font-size: 14px;
 }
 
-#dd3_l {
+#dd0_l, #dd1_l, #dd3_l, #ddex_l {
     top: 32px;
-    left: 0px;
-    width: 200%;
     border-top: solid 1px #aaa;
     border-radius: 5px !important;
     display: grid;
     overflow-y: scroll;
     overflow-x: hidden;
-    max-height: 200px;
     height: 0;
+}
+#dd0_l, #dd1_l {
+    max-height: 300px;
+}
+#dd3_l {
+    width: 200%;
+    max-height: 250px;
+    left: 0px;
 }
 #ddex_l {
-    top: 32px;
-    right: 0px;
-    left: unset;
     width: 200%;
-    border-top: solid 1px #aaa;
-    border-radius: 5px !important;
-    display: grid;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    max-height: 200px;
-    height: 0;
+    max-height: 250px;
+    right: 0px;
 }
 
+.dropdown[dd-show="true"] #dd0_l,
+.dropdown[dd-show="true"] #dd1_l,
 .dropdown[dd-show="true"] #dd3_l,
 .dropdown[dd-show="true"] #ddex_l {
     height: initial;
 }
 
+#dd0_l label,
+#dd1_l label,
 #dd3_l label,
 #ddex_l label {
     margin: 1px;
@@ -207,10 +208,6 @@ label[for="ddex2"] {
 }
 #datesel1-label {
     font-size: 12px;
-}
-
-#dd1 {
-    margin-right: 1%;
 }
 
 .main-dd {
