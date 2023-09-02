@@ -480,6 +480,7 @@ namespace TcServer.Controllers
 					return BadRequest();
 				
 				devices = await dbCtx.Devices
+					.Where(d => d.CompanyId == empl.CompanyId)
 					.Where(d => d.Password != null)
 					.ToListAsync();
 				
